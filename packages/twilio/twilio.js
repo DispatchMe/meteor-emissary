@@ -116,7 +116,8 @@ TwilioTransport.prototype.send = function (job) {
   try {
     var response = client.sendSMS({
       to: data.to,
-      body: body
+      body: body,
+      statusCallback: Emissary.getFullUrlForEndpoint('/twilio/webhook')
     });
 
     // It might be possible that twilio hits the endpoint before we save this...
