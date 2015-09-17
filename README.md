@@ -1,6 +1,8 @@
 Emissary
 ==========
 
+[![Build Status](https://travis-ci.org/DispatchMe/meteor-emissary.svg)](https://travis-ci.org/DispatchMe/meteor-emissary)
+
 Emissary is a flexible, scalable notifications framework for Meteor.
 
 ## What's it do?
