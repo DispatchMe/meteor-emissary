@@ -1,19 +1,18 @@
 Package.describe({
   name: 'dispatch:emissary-transport-twilio',
   summary: 'Twilio transport for emissary',
-  version: '0.0.1'
+  version: '0.0.2'
 });
 
 Package.onUse(function (api) {
 
   api.use([
     // core
-    'mongo',
-    'underscore',
-    'check',
+    'underscore@1.0.3',
+    'check@1.0.5',
 
     // Atmosphere
-    'dispatch:emissary',
+    'dispatch:emissary@0.0.2',
     'dispatch:twilio@1.1.0'
 
   ], 'server');
@@ -38,7 +37,7 @@ Package.onTest(function (api) {
   api.use('sanjo:jasmine@0.16.4', ['client', 'server']);
   api.use([
     'dispatch:emissary-transport-twilio',
-    'dispatch:emissary',
+    'dispatch:emissary@0.0.2',
   ], 'server');
 
   api.addFiles([

@@ -2,6 +2,7 @@
 /* global JsonRoutes:false - from simple:json-routes */
 var webhooks = {};
 
+var rootUrl = null;
 /**
  * Register an endpoint as a webhook/callback. For transports to use when dealing with asynchronous APIs that 
  * communicate status updates and failures via webhook. Note that these endpoints aren't actually created until you run
@@ -61,9 +62,22 @@ Emissary.enableWebhooks = function () {
   }
 };
 
-Emissary.getFullUrlForEndpoint = function ( /*endpoint*/ ) {
-  // var path = '/emissary' + endpoint;
+Emissary.setRootUrl = function (url) {
+  rootUrl = url;
 
-  // Where do we get the URL and protocol from in here? Should probably be a setting.
-  throw new Error('Not implemented');
+  // Make sure it ends with a slash
+  if (rootUrl.substr(-1) !== '/') {
+    rootUrl += '/';
+  }
+};
+
+Emissary.getFullUrlForEndpoint = function (endpoint) {
+  var path = '/emissary' + endpoint;
+
+  if (rootUrl === null) {
+    throw new Emissary.Error(
+      'In order to use webhooks you must first set the root URL of your server with Emissary.setRootUrl()');
+  }
+
+  return rootUrl + path;
 };

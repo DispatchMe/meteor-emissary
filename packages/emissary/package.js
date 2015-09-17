@@ -1,17 +1,16 @@
 Package.describe({
   name: 'dispatch:emissary',
-  summary: 'Queue definition and helper functions for notifications. ' +
-    'Used both in notifications workers and network for async webhook support',
-  version: '0.0.1'
+  summary: 'Extensible/configurable notifications package',
+  version: '0.0.2'
 });
 
 Package.onUse(function (api) {
 
   api.use([
     // core
-    'mongo',
-    'underscore',
-    'check',
+    'mongo@1.1.0',
+    'underscore@1.0.3',
+    'check@1.0.5',
 
     // Atmosphere
     'vsivsi:job-collection@1.2.2',
