@@ -116,3 +116,6 @@ You can also make use of `job.handleResponse()` to automatically run `job.done()
 ```
 
 A fatal or catastrophic error will emit a `"turnOff"` event on the global `Emissary` object, signaling that notifications of that type should no longer be sent to that specific recipient until some action is performed. The action can be defined by the `resolution` property of the response. A minor error results in the message being retried. When `done` is `true`, the process is considered a success.
+
+## Router
+You can use the [emissary-router](packages/router/README.md) package to automatically queue notifications to be sent based on certain events. It is completely configurable and easy to use.
