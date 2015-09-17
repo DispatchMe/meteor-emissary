@@ -3,7 +3,6 @@ machine:
     version: 0.10.40
 
 install:
-  - sudo pip install awscli
   - curl https://install.meteor.com/ | sh
   - npm install -g jshint
   - npm install -g velocity-cli
