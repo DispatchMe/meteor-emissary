@@ -4,6 +4,7 @@ machine:
 
 install:
   - curl https://install.meteor.com/ | sh
+  - export PATH=$PATH:$HOME/.meteor
   - npm install -g jshint
   - npm install -g velocity-cli
 
