@@ -1,4 +1,5 @@
 /* global Emissary:false - from dispatch:emissary */
+/* global EmissaryTest:false - from dispatch:emissary */
 /* global MandrillTransport:false */
 describe('email', function () {
   it('should generate the request body accurately', function () {
@@ -67,7 +68,7 @@ describe('email', function () {
         to: 'test@test.com'
       });
 
-      jobId = job.getId();
+      var jobId = job.getId();
 
       EmissaryTest.queue.update({
         _id: jobId
@@ -132,7 +133,7 @@ describe('email', function () {
         expect(HTTP.post).toHaveBeenCalled();
         job._job.refresh();
         if (param.error) {
-          if (param.error == Emissary.FatalError) {
+          if (param.error === Emissary.FatalError) {
             // Complete failure
             expect(job.getInfo().status).toEqual('failed');
           } else {

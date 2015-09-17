@@ -94,9 +94,11 @@ TwilioTransport.prototype.send = function (job) {
    *     price_unit: 'USD',
    *     error_code: null,
    *     error_message: null,
-   *     uri: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages/SM13e11d47e4c94fcf90177db50173deba.json',
+   *     uri: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
+   *       /SM13e11d47e4c94fcf90177db50173deba.json',
    *     subresource_uris: { 
-   *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages/SM13e11d47e4c94fcf90177db50173deba/Media.json' 
+   *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
+   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json' 
    *     },
    *     dateCreated: Wed Sep 09 2015 10:48:31 GMT-0400 (EDT),
    *     dateUpdated: Wed Sep 09 2015 10:48:31 GMT-0400 (EDT),
@@ -109,12 +111,13 @@ TwilioTransport.prototype.send = function (job) {
    *     errorCode: null,
    *     errorMessage: null,
    *     subresourceUris: { 
-   *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages/SM13e11d47e4c94fcf90177db50173deba/Media.json' 
+   *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
+   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json' 
    *     } 
    * }
    */
   try {
-    var response = client.sendSMS({
+    var response = this._client.sendSMS({
       to: data.to,
       body: body,
       statusCallback: Emissary.getFullUrlForEndpoint('/twilio/webhook')

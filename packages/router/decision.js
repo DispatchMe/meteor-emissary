@@ -173,7 +173,7 @@ function getNotificationTypesForRecipient(recipient, recipientInfo, recipientCon
   // Allow users to define their own logic for skipping certain notification types
   // based on certain conditions
   if (_.isFunction(EmissaryRouter._config.skipFilter)) {
-    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientConfig, eventName) || [];
+    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
   }
 
   // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
@@ -206,12 +206,12 @@ function getNotificationTypesForRecipient(recipient, recipientInfo, recipientCon
       if (!checkFunction) {
         throw new Emissary.Error('Check function is not defined for notification type %s', preferenceType);
       }
-      if (checkFunction(recipient, recipientConfig, eventName) === true) {
+      if (checkFunction(recipient, recipientInfo, recipientConfig, eventName) === true) {
         notificationTypes = notificationTypes.concat(notificationTypesByPreference[preferenceType]);
       }
     }
   }
 
   // This is now all of the notification types we need to send based on the recipient's configuration
-  return _.uniq(notificationTypes);
+  return _.uniq(_.difference(notificationTypes, skipMessageTypes));
 }

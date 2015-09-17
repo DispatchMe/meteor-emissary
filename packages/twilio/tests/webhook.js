@@ -1,4 +1,7 @@
 /* global EmissaryTest:false - from dispatch:notifications-base */
+/* global TwilioTransport:false - from dispatch:emissary-transport-twilio */
+/* global Emissary:false - from dispatch:emissary */
+/* global EmissaryJob:false - from dispatch:emissary-job */
 describe('Twilio callback endpoint', function () {
   var jobId;
 

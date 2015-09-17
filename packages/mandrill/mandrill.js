@@ -1,4 +1,5 @@
 /* global Emissary:false - from dispatch:notifications-base */
+/* global MandrillTransport:true */
 // Send emails with Mandrill
 
 var ERROR_LEVEL = Emissary.ERROR_LEVEL;
@@ -14,7 +15,7 @@ MandrillTransport = function (config) {
 };
 
 MandrillTransport.prototype.register = function () {
-  Emissary.registerWorker('email', {}, _.bind(this, this.send));
+  Emissary.registerWorker('email', {}, _.bind(this.send, this));
 };
 
 MandrillTransport.prototype.send = function (job) {

@@ -61,8 +61,8 @@ Emissary.enableWebhooks = function () {
   }
 };
 
-Emissary.getFullUrlForEndpoint = function (endpoint) {
-  var path = '/emissary' + endpoint;
+Emissary.getFullUrlForEndpoint = function ( /*endpoint*/ ) {
+  // var path = '/emissary' + endpoint;
 
   // Where do we get the URL and protocol from in here? Should probably be a setting.
   throw new Error('Not implemented');

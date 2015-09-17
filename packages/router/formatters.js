@@ -15,9 +15,11 @@ EmissaryRouter.registerToFormatter('sms', function (recipient) {
 });
 
 EmissaryRouter.registerToFormatter('push', function (recipient) {
-  return recipient._id;
+  return {
+    userId: recipient._id
+  };
 });
 
 EmissaryRouter.registerToFormatter('webhook', function (recipient, config, eventName) {
-  return config.webhooks[eventName];
+  return config[EmissaryRouter._config.prefix].webhooks[eventName];
 });

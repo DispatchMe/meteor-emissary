@@ -4,7 +4,7 @@
 WebhookTransport = function () {};
 
 WebhookTransport.prototype.register = function () {
-  Emissary.registerWorker('webhook', {}, _.bind(this, this.send));
+  Emissary.registerWorker('webhook', {}, _.bind(this.send, this));
 };
 
 WebhookTransport.prototype.send = function (job) {
@@ -27,7 +27,7 @@ WebhookTransport.prototype.send = function (job) {
 
     job.log('Got response: ' + response.content);
 
-    if (data.to.expectStatus && data.to.expectStatus != response.statusCode) {
+    if (data.to.expectStatus && data.to.expectStatus !== response.statusCode) {
       job.done(new Emissary.Error('Expected status code %d to equal %d', response.statusCode, data.to.expectStatus));
     } else if (response.statusCode >= 299 || response.statusCode < 200) {
       job.done(new Emissary.Error('Error-level status code: %d', response.statusCode));

@@ -256,8 +256,8 @@ Emissary.queueTask = function (taskName, data, transform) {
   });
 
   var job = new Job(queue, taskName, data);
-  if (transform && _.isFunctionn(transform)) {
-    job = transform(job);
+  if (transform && _.isFunction(transform)) {
+    job = transform(job, data);
   }
 
   job.save();

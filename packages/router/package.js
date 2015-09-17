@@ -13,7 +13,7 @@ Package.onUse(function (api) {
     'check',
 
     // Atmosphere
-    'dispatch:configuration',
+    'dispatch:configuration@0.0.2',
     'dispatch:emissary'
   ], 'server');
 

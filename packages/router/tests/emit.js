@@ -1,4 +1,3 @@
-/* global Configuration:false - from dispatch:configuration */
 /* global EmissaryRouter:false */
 /* global Emissary:false - from dispatch:emissary */
 describe('emit', function () {
