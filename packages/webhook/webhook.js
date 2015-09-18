@@ -27,14 +27,26 @@ WebhookTransport.prototype.send = function (job) {
 
     job.log('Got response: ' + response.content);
 
+    var eventData = {
+      data: data,
+      response: response
+    };
+
+    Emissary.emit('webhookSent', eventData);
+
     if (data.to.expectStatus && data.to.expectStatus !== response.statusCode) {
+      Emissary.emit('webhookError', eventData);
       job.done(new Emissary.Error('Expected status code %d to equal %d', response.statusCode, data.to.expectStatus));
     } else if (response.statusCode >= 299 || response.statusCode < 200) {
+      Emissary.emit('webhookError', eventData);
       job.done(new Emissary.Error('Error-level status code: %d', response.statusCode));
     } else {
       // Assume it was successful
+      Emissary.emit('webhookSuccessful', eventData);
       job.done();
+
     }
+
   } catch (err) {
     job.done(err);
   }

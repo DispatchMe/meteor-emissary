@@ -66,7 +66,23 @@ TwilioTransport.prototype.handleWebhook = function (data) {
   }
 
   var interpretedResponse = interpretResponse(data.MessageStatus, data.ErrorCode);
+  this.emitStatusEvent(job.getMessage(), interpretedResponse);
+
   job.handleResponse(interpretedResponse);
+};
+
+TwilioTransport.prototype.emitStatusEvent = function (data, response) {
+  var eventData = {
+    data: data,
+    response: response
+  };
+
+  // @todo flesh this out
+  if (!response.ok) {
+    Emissary.emit('twilioError', eventData);
+  } else {
+    Emissary.emit('twilioQueued', eventData);
+  }
 };
 
 TwilioTransport.prototype.send = function (job) {
@@ -127,6 +143,8 @@ TwilioTransport.prototype.send = function (job) {
     job.linkToExternalId('twilio', response.sid);
 
     var interpretedResponse = interpretResponse(response.status, response.errorCode);
+
+    this.emitStatusEvent(data, interpretedResponse);
 
     // This will either complete the job, fail the job, or just log the current status.
     job.handleResponse(interpretedResponse);

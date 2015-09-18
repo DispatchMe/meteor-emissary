@@ -72,7 +72,16 @@ EmissaryRouter.init = function (config) {
 
 EmissaryRouter.send = function (eventName, eventData) {
   var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
-  var transform = EmissaryRouter._config.transformJob || null;
+  var transform = function (job, data) {
+    job.delay(data.delay);
+
+    if (_.isFunction(EmissaryRouter._config.transformJob)) {
+      job = EmissaryRouter._config.transformJob(job, data);
+    }
+
+    return job;
+  };
+
   messages.forEach(function (msg) {
     Emissary.queueTask(msg.type, msg, transform);
   });

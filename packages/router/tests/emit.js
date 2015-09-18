@@ -27,12 +27,12 @@ describe('emit', function () {
     expect(Emissary.queueTask.calls.argsFor(0)).toEqual(['email', {
       type: 'email',
       recipient: ['foo', '1']
-    }, null]);
+    }, jasmine.any(Function)]);
 
     expect(Emissary.queueTask.calls.argsFor(1)).toEqual(['sms', {
       type: 'sms',
       recipient: ['foo', '2']
-    }, null]);
+    }, jasmine.any(Function)]);
   });
 
 });

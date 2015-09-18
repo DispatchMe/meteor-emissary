@@ -200,13 +200,17 @@ EmissaryJob.prototype.linkToExternalId = function (source, id) {
  * @param  {Object} options  Options to be passed directly to JobCollection.processJobs
  * @param  {Function} worker   Function that takes the job as its only argument. The worker is expected to run 
  *                             `job.done()` or `job.done(err)` as needed.
+ *
+ * @todo  Make timeout configurable
  */
 Emissary.registerWorker = function (taskName, options, worker) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
 
-  return queue.processJobs(taskName, options, function (job, callback) {
+  return queue.processJobs(taskName, _.extend({
+    workTimeout: 5 * 60 * 1000
+  }, options), function (job, callback) {
     var jobObj = new EventTasker.drivers._JobsCollectionMessage(job);
     try {
       worker(jobObj);
@@ -243,6 +247,8 @@ Emissary.queueTask = function (taskName, data, transform) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
+
+  // "Cancel If" logic will go here when we want to add it
 
   check(data, {
     bodyTemplate: String,
@@ -297,3 +303,5 @@ Emissary.getJobByExternalId = function (source, externalId) {
 
   return Emissary.getJobById(externalIdDoc.jobId);
 };
+
+// @todo - retry messages by recipient by type, for when they fix their phone number, for example
