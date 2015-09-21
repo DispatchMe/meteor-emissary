@@ -14,7 +14,8 @@ Package.onUse(function (api) {
 
     // Atmosphere
     'dispatch:configuration@0.0.2',
-    'dispatch:emissary@0.0.3'
+    'dispatch:emissary@0.0.3',
+    'gfk:underscore-deep@1.0.0'
   ], 'server');
 
   api.addFiles([

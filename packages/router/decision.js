@@ -55,13 +55,8 @@ function getMessagesForRecipient(recipientInfo, recipientConfig, eventName, even
   if (!recipient) {
     throw new Emissary.Error('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
   }
-  var notificationTypesToSend = getNotificationTypesForRecipient(recipient, recipientInfo, recipientConfig, eventName);
 
-  var messages = [];
-
-  notificationTypesToSend.forEach(function (type) {
-    messages = messages.concat(generateMessageForType(type, recipient, recipientConfig, eventName, eventData));
-  });
+  var messages = getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData);
 
   // Attach the original recipient info to each message if we need to adjust configuration in the workers (for
   // example, if an email hard-bounces and we need to turn it off)
@@ -87,15 +82,12 @@ function getMessagesForRecipient(recipientInfo, recipientConfig, eventName, even
  * 
  * @param  {String} type            The type of notification (e.g. "push")
  * @param  {Array} recipient        Tuple of recipient info [entity_type, entity_id]
- * @param  {Object} recipientConfig Config retrieved for recipient using dispatch:configuration
+ * @param  {Object} recipientConfig Config retrieved for recipient, specific for this type and event.
  * @param  {String} eventName       Name of the event
  * @param  {Object} eventData       Data about the event
  * @return {Object}                 Message to send
  */
 function generateMessageForType(type, recipient, recipientConfig, eventName, eventData) {
-  var timing = recipientConfig[EmissaryRouter._config.prefix].timing[eventName][type];
-  var subjectTemplate = getTemplate(recipientConfig, type, eventName, 'subject');
-  var bodyTemplate = getTemplate(recipientConfig, type, eventName, 'body');
 
   var toFormatter = EmissaryRouter._toFormatters[type];
   if (!toFormatter || !_.isFunction(toFormatter)) {
@@ -104,114 +96,191 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
 
   return {
     type: type,
-    subjectTemplate: subjectTemplate,
-    bodyTemplate: bodyTemplate,
-    delay: timing.delay,
-    timeout: timing.timeout,
+    subjectTemplate: recipientConfig.templates.subject || '',
+    bodyTemplate: recipientConfig.templates.body,
+    delay: recipientConfig.timing.delay,
+    timeout: recipientConfig.timing.timeout,
     to: toFormatter(recipient, recipientConfig, eventName, eventData)
   };
-
 }
 
-function getTemplate(config, type, evt, templateType) {
-  var template = config[EmissaryRouter._config.prefix].templates[evt][type][templateType];
-  if (!template) {
-    // Subject templates aren't required for push
-    if (type !== 'push' && templateType !== 'subject') {
-      throw new Emissary.Error('Blank or missing %s template for %s:%s', templateType, type, evt);
-    }
-  }
-
-  return template;
+/**
+ * 
+ * The "interpreted config" is everything relevant to the worker for sending an event of a particular type.
+ * 
+ * The arbitrary config is deep extended, meaning the event-specific config overwrites individual properties of the 
+ * type-specific config.
+ *
+ * @param {Object} conf The full config for that type
+ * @param {String} eventName The event name
+ * @return {Object} The interpreted config with inheritance, etc
+ */
+function getInterpretedConfigForEvent(conf, eventName) {
+  return {
+    templates: conf[eventName].templates,
+    timing: conf[eventName].timing,
+    conf: _.deepExtend({}, conf.config || {}, conf[eventName].config || {})
+  };
 }
 
 /**
  * Get all of the notification types to send to a particular recipient
  * for the given event
  *
- * 
  * @param  {Object} recipient   The recipient, retrieved using retrieveEntity()
  * @param {Array} recipientInfo The tuple for interaction with dispatch:configuration [entity_type, entity_id]
  * @param  {Object} recipientConfig               Inherited(?) configuration
  * @param  {String} eventName                     The name of the event
  * @return {Array<String>}                        List of notification types, e.g ["push", "sms"]
  */
-function getNotificationTypesForRecipient(recipient, recipientInfo, recipientConfig, eventName) {
+function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData) {
   var notificationTypesByPreference = {};
 
-  // Types are defined on the schema so we can just loop through the keys. If we don't know
-  // how to handle a type, we can ignore it later.
-  var preferences = recipientConfig[EmissaryRouter._config.prefix].preferences || {};
-  var typeConfig;
-  var eventsList;
-  var checkFunction;
-  var notificationType;
+  var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
+  var notificationTypeConfig;
   var preferenceType;
-  for (notificationType in preferences) {
-    if (!preferences.hasOwnProperty(notificationType)) {
-      continue;
-    }
+  var eventsList;
+  var conf;
+  var checkFunction;
 
-    typeConfig = preferences[notificationType];
-    for (preferenceType in typeConfig) {
-      if (typeConfig.hasOwnProperty(preferenceType)) {
+  function checkWhenAgainstEvent(when) {
+    for (var preferenceType in when) {
+      if (!when.hasOwnProperty(preferenceType)) {
+        continue;
+      }
+
+      eventsList = when[preferenceType];
+
+      if (eventsList.indexOf(eventName) >= 0) {
         if (!notificationTypesByPreference[preferenceType]) {
           notificationTypesByPreference[preferenceType] = [];
         }
-        eventsList = typeConfig[preferenceType] || [];
-        if (eventsList.indexOf(eventName) >= 0) {
-          // If they want to be notified of this event for a certain receipt preference,
-          // add it to that corresponding array.
-          notificationTypesByPreference[preferenceType].push(notificationType);
+        return preferenceType;
+      }
+    }
+    return null;
+  }
+
+  var messages = [];
+
+  for (var notificationType in notificationTypeConfigs) {
+    if (!notificationTypeConfigs.hasOwnProperty(notificationType)) {
+      continue;
+    }
+
+    notificationTypeConfig = notificationTypeConfigs[notificationType];
+
+    // Is it multi? Then we could potentially send more than one. Split them out into their type/index combos with
+    // the configuration for that specific index
+    if (_.isArray(notificationTypeConfig)) {
+      for (var i = 0; i < notificationTypeConfig.length; i++) {
+        conf = notificationTypeConfig[i];
+
+        preferenceType = checkWhenAgainstEvent(conf.when);
+        if (preferenceType) {
+
+          notificationTypesByPreference[preferenceType].push({
+            type: notificationType,
+            index: i,
+            conf: getInterpretedConfigForEvent(conf, eventName)
+          });
         }
       }
+    } else {
+      preferenceType = checkWhenAgainstEvent(notificationTypeConfig.when);
+      if (preferenceType) {
+        notificationTypesByPreference[preferenceType].push({
+          type: notificationType,
+          conf: getInterpretedConfigForEvent(notificationTypeConfig, eventName),
 
+          // Be sure to distinguish between null and 0
+          index: null
+        });
+      }
+    }
+
+    // Now we have something that looks like this:
+    // notificationTypesByPreference = {
+    //    "always":[
+    //       {
+    //          type:'webhook',
+    //          index:0,
+    //          conf:{...}
+    //       }, {
+    //          type:'webhook',
+    //          index:1,
+    //          conf:{...}
+    //       }
+    //    ],
+    //    "night":[
+    //        {
+    //            type:'webhook',
+    //            index:2,
+    //            conf:{...}
+    //        }, {
+    //            type:'sms',
+    //            conf:{...}
+    //        }
+    //    ]
+    // }
+
+    var skipMessageTypes = [];
+    // Allow users to define their own logic for skipping certain notification types
+    // based on certain conditions
+    if (_.isFunction(EmissaryRouter._config.skipFilter)) {
+      skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
+    }
+
+    // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
+    // type of notification.
+    skipMessageTypes = skipMessageTypes.concat(_.pluck(EmissaryRouter.ConfigurationErrors.collection.find({
+      entityType: recipientInfo[0],
+      entityId: recipientInfo[1],
+      status: 'unresolved'
+    }, {
+      fields: {
+        type: 1
+      }
+    }).fetch(), 'type'));
+
+    // Go through each list in the notificationTypesByPreference. If it's not empty, we use the user-defined function to
+    // determine if that "preference" is currently valid. For example if the preference is "night", then the 
+    // user-defined function could check if it's currently night time for that recipient and return `true`, else 
+    // return `false`.
+    var receivePreference;
+    var typeConfig;
+    var typeName;
+    var typeIndex;
+
+    for (preferenceType in notificationTypesByPreference) {
+      if (notificationTypesByPreference.hasOwnProperty(preferenceType)) {
+        receivePreference = _.findWhere(EmissaryRouter._config.receivePreferences, {
+          type: preferenceType
+        });
+        if (receivePreference) {
+          checkFunction = receivePreference.check;
+        } else {
+          checkFunction = null;
+        }
+        if (!checkFunction) {
+          throw new Emissary.Error('Check function is not defined for notification type %s', preferenceType);
+        }
+        if (checkFunction(recipient, recipientInfo, recipientConfig, eventName) === true) {
+
+          // We should send the message. Now generate the messages for each type and add them to the messages array
+          for (var n = 0; n < notificationTypesByPreference[preferenceType].length; n++) {
+            typeConfig = notificationTypesByPreference[preferenceType][n];
+            typeName = typeConfig.type;
+            typeIndex = typeConfig.index;
+
+            if (!_.contains(skipMessageTypes, typeName)) {
+              messages.push(generateMessageForType(typeName, recipient, typeConfig.conf, eventName, eventData));
+            }
+          }
+        }
+      }
     }
   }
 
-  var skipMessageTypes = [];
-  // Allow users to define their own logic for skipping certain notification types
-  // based on certain conditions
-  if (_.isFunction(EmissaryRouter._config.skipFilter)) {
-    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
-  }
-
-  // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
-  // type of notification.
-  skipMessageTypes = skipMessageTypes.concat(_.pluck(EmissaryRouter.ConfigurationErrors.collection.find({
-    entityType: recipientInfo[0],
-    entityId: recipientInfo[1],
-    status: 'unresolved'
-  }, {
-    fields: {
-      type: 1
-    }
-  }).fetch(), 'type'));
-
-  // Go through each list in the notificationTypesByPreference. If it's not empty, we use the user-defined function to
-  // determine if that "preference" is currently valid. For example if the preference is "night", then the user-defined
-  // function could check if it's currently night time for that recipient and return `true`, else return `false`.
-  var notificationTypes = [];
-  var receivePreference;
-  for (preferenceType in notificationTypesByPreference) {
-    if (notificationTypesByPreference.hasOwnProperty(preferenceType)) {
-      receivePreference = _.findWhere(EmissaryRouter._config.receivePreferences, {
-        type: preferenceType
-      });
-      if (receivePreference) {
-        checkFunction = receivePreference.check;
-      } else {
-        checkFunction = null;
-      }
-      if (!checkFunction) {
-        throw new Emissary.Error('Check function is not defined for notification type %s', preferenceType);
-      }
-      if (checkFunction(recipient, recipientInfo, recipientConfig, eventName) === true) {
-        notificationTypes = notificationTypes.concat(notificationTypesByPreference[preferenceType]);
-      }
-    }
-  }
-
-  // This is now all of the notification types we need to send based on the recipient's configuration
-  return _.uniq(_.difference(notificationTypes, skipMessageTypes));
+  return messages;
 }
