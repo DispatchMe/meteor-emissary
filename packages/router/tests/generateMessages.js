@@ -1,14 +1,40 @@
 /* global Configuration:false - from dispatch:configuration */
 /* global EmissaryRouter:false */
 describe('generateMessages', function () {
-  var isDaytime = true;
   // Just for switching test context - in actual implementations I hope it would be more complicated...
+  var isDaytime = true;
+
   beforeEach(function () {
+
     Configuration.addEntityType('foo');
 
     EmissaryRouter.init({
       events: ['event1', 'event2', 'event3'],
-      notificationTypes: ['type1', 'type2', 'type3'],
+      notificationTypes: [{
+        type: 'type1',
+        multi: false,
+        formatter: function (recipient) {
+          return recipient.type1value;
+        }
+      }, {
+        type: 'type2',
+        multi: false,
+        formatter: function (recipient) {
+          return recipient.type2value;
+        }
+      }, {
+        type: 'type3',
+        multi: true,
+        formatter: function (recipient, recipientConfig, eventName) {
+          if (eventName === 'event1') {
+            return recipientConfig.to;
+          } else {
+            // So we can test the extension
+            return recipientConfig;
+          }
+        }
+      }],
+
       receivePreferences: [{
         type: 'always',
         check: function () {
@@ -38,9 +64,9 @@ describe('generateMessages', function () {
             type2value: 'type2value'
           };
         } else if (id === '2') {
-          return {
-            type3value: 'type3value'
-          };
+          return {};
+        } else if (id === '3') {
+          return {};
         }
       },
       generateTemplateData: function () {
@@ -50,38 +76,32 @@ describe('generateMessages', function () {
       }
     });
 
-    EmissaryRouter.registerToFormatter('type1', function (recipient) {
-      return recipient.type1value;
-    });
-
-    EmissaryRouter.registerToFormatter('type2', function (recipient) {
-      return recipient.type2value;
-    });
-
-    EmissaryRouter.registerToFormatter('type3', function (recipient) {
-      return recipient.type3value;
-    });
-
     Configuration.setForEntity('foo', '1', {
       emissary: {
-        templates: {
-          event1: {
-            type1: {
-              body: 'Type 1 template',
-              subject: 'Type 1 subject'
-            },
-            type2: {
-              body: 'Type 2 template',
-              subject: 'Type 2 subject'
+        type1: {
+          when: {
+            always: ['event1']
+          },
+          events: {
+            event1: {
+              templates: {
+                body: 'Type 1 template',
+                subject: 'Type 1 subject'
+              }
             }
           }
         },
-        preferences: {
-          type1: {
-            always: ['event1']
-          },
-          type2: {
+        type2: {
+          when: {
             day: ['event1']
+          },
+          events: {
+            event1: {
+              templates: {
+                body: 'Type 2 template',
+                subject: 'Type 2 subject'
+              }
+            }
           }
         }
       }
@@ -89,19 +109,66 @@ describe('generateMessages', function () {
 
     Configuration.setForEntity('foo', '2', {
       emissary: {
-        templates: {
-          event1: {
-            type3: {
-              body: 'Type 3 template',
-              subject: 'Type 3 subject'
+        type3: [{
+          when: {
+            night: ['event1']
+          },
+          events: {
+            event1: {
+              templates: {
+                body: 'Type 3 template',
+                subject: 'Type 3 subject'
+              },
+              config: {
+                to: 'type3to'
+              }
             }
           }
-        },
-        preferences: {
-          type3: {
-            night: ['event1']
+        }, {
+          when: {
+            always: ['event2']
+          },
+          events: {
+            event2: {
+              templates: {
+                body: '',
+                subject: ''
+              },
+              config: {
+                nested: {
+                  foo: 'bar'
+                },
+                other: 'baz'
+              }
+            }
+          },
+          config: {
+            nested: {
+              boop: 'scoop'
+            },
+            other: 'loop'
           }
-        }
+        }]
+      }
+    });
+    Configuration.setForEntity('foo', '3', {
+      emissary: {
+        type3: [{
+          when: {
+            day: ['event1']
+          },
+          events: {
+            event1: {
+              templates: {
+                body: 'Type 3 template #3',
+                subject: 'Type 3 subject #3'
+              },
+              config: {
+                to: 'type3to #3'
+              }
+            }
+          }
+        }]
       }
     });
   });
@@ -111,13 +178,16 @@ describe('generateMessages', function () {
     Configuration._entityTypes = [];
   });
 
-  it('event1 during the day should do type1 and type2 for entity #1', function () {
+  it('event1 during the day should do type1 and type2 for entity #1, and type3 for entity #3', function () {
     isDaytime = true;
     var messages = EmissaryRouter._generateMessages([
       ['foo', '1'],
-      ['foo', '2']
+      ['foo', '2'],
+      ['foo', '3']
     ], 'event1', null);
-    expect(messages.length).toEqual(2);
+
+    expect(messages.length).toEqual(3);
+
     expect(messages[0]).toEqual({
       type: 'type1',
       subjectTemplate: 'Type 1 subject',
@@ -143,13 +213,27 @@ describe('generateMessages', function () {
         foo: 'bar'
       }
     });
+
+    expect(messages[2]).toEqual({
+      type: 'type3',
+      subjectTemplate: 'Type 3 subject #3',
+      bodyTemplate: 'Type 3 template #3',
+      delay: 0,
+      timeout: 0,
+      to: 'type3to #3',
+      recipient: ['foo', '3'],
+      templateData: {
+        foo: 'bar'
+      }
+    });
   });
 
   it('event1 at night should just do type1 for entity #1 and type3 for entity#2', function () {
     isDaytime = false;
     var messages = EmissaryRouter._generateMessages([
       ['foo', '1'],
-      ['foo', '2']
+      ['foo', '2'],
+      ['foo', '3']
     ], 'event1', null);
     expect(messages.length).toEqual(2);
     expect(messages[0]).toEqual({
@@ -171,7 +255,35 @@ describe('generateMessages', function () {
       bodyTemplate: 'Type 3 template',
       delay: 0,
       timeout: 0,
-      to: 'type3value',
+      to: 'type3to',
+      recipient: ['foo', '2'],
+      templateData: {
+        foo: 'bar'
+      }
+    });
+  });
+
+  it('event 2 during the day should trigger type 3 for entity#2', function () {
+    isDaytime = true;
+    var messages = EmissaryRouter._generateMessages([
+      ['foo', '2'],
+      ['foo', '3']
+    ], 'event2', null);
+
+    expect(messages.length).toEqual(1);
+    expect(messages[0]).toEqual({
+      type: 'type3',
+      subjectTemplate: '',
+      bodyTemplate: '',
+      delay: 0,
+      timeout: 0,
+      to: {
+        nested: {
+          boop: 'scoop',
+          foo: 'bar'
+        },
+        other: 'baz'
+      },
       recipient: ['foo', '2'],
       templateData: {
         foo: 'bar'

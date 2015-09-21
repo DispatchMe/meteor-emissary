@@ -43,7 +43,11 @@ EmissaryRouter = {};
 EmissaryRouter.init = function (config) {
   check(config, {
     events: [String],
-    notificationTypes: Match.Optional([String]),
+    notificationTypes: [{
+      type: String,
+      multi: Match.Optional(Boolean),
+      formatter: Function
+    }],
     receivePreferences: [{
       type: String,
       check: Function
@@ -62,7 +66,37 @@ EmissaryRouter.init = function (config) {
 
   if (!config.notificationTypes) {
     // Defaults
-    config.notificationTypes = ['email', 'sms', 'push', 'webhook'];
+    config.notificationTypes = [{
+      type: 'email',
+      formatter: function (recipient) {
+        return recipient.email;
+      }
+    }, {
+      type: 'sms',
+      formatter: function (recipient) {
+        return recipient.phoneNumber;
+      }
+    }, {
+      type: 'push',
+      formatter: function (recipient) {
+        return {
+          userId: recipient._id
+        };
+      }
+    }, {
+      type: 'webhook',
+      multi: true,
+
+      // Here, if it's multi, config will be the relevant element of the array instead of the array
+      formatter: function (recipient, config, eventName) {
+        // If there's config for the particular event, use that. Otherwise use 
+        if (config.webhook[eventName].config) {
+          return config.webhook[eventName].config;
+        } else {
+          return config.webhook.config;
+        }
+      }
+    }];
   }
 
   this._config = config;
@@ -70,6 +104,51 @@ EmissaryRouter.init = function (config) {
   this._defineSchema();
 };
 
+/**
+ * Schema looks like this:
+ * {
+ *     sms:{
+ *         when:{
+ *             always:[...],
+ *             work_hours:[...]
+ *         },
+ *         events:{
+ *             jobCreated:{
+ *                 timing:{
+ *                     delay:0,
+ *                     timeout:0
+ *                 },
+ *                 templates:{
+ *                     body:'',
+ *                     subject:''
+ *                 },
+ *                 config:{...}
+ *             }
+ *         },
+ *         config{...}
+ *     }
+ * }
+ *
+ *
+ * {
+ *     type1:{
+ *         when:{
+ *             always:[],
+ *             day:[],
+ *             night:[]
+ *         },
+ *         events:{
+ *             event1:[
+ *                 
+ *             ]
+ *         }
+ *     }
+ * 
+ * }
+ * @param  {[type]} eventName [description]
+ * @param  {[type]} eventData [description]
+ * @return {[type]}           [description]
+ */
 EmissaryRouter.send = function (eventName, eventData) {
   var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
   var transform = function (job, data) {
@@ -95,153 +174,102 @@ EmissaryRouter._defineSchema = function () {
   var defaults = {};
   var schema = {};
 
-  // Templates look like this:
-  // {
-  //    templates:{
-  //        '<event name>':{
-  //            email:'<template id>',
-  //            sms:'<template id>',
-  //            push:'<template id>',
-  //            webhook:'<template id>'
-  //        }
-  //    }
-  // }
-  schema.templates = {
-    type: Object,
-    optional: true
-  };
-  defaults.templates = {};
-
-  // Timing configs are very similar. They define two things: 
-  // (1) if not able to send in a certain # of milliseconds, do not send at all, and
-  // (2) delay a certain number of milliseconds before sending the notification
-  // 
-  // They look like this:
-  // {
-  //    timing:{
-  //        '<event name>':{
-  //            email:{
-  //                delay:<ms>,
-  //                timeout:<ms>
-  //            },
-  //            push:{
-  //                delay:<ms>,
-  //                timeout:<ms>
-  //            },
-  //            ...
-  //        }
-  //    }
-  // }
-  schema.timing = {
-    type: Object
-  };
-  defaults.timing = {};
-
-  events.forEach(function (evt) {
-    // Set the defaults...
-    defaults.templates[evt] = {};
-    defaults.timing[evt] = {};
-
-    notificationTypes.forEach(function (type) {
-      defaults.templates[evt][type] = '';
-      schema['templates.' + evt + '.' + type + '.body'] = {
-        type: String
-      };
-      schema['templates.' + evt + '.' + type + '.subject'] = {
-        type: String
-      };
-
-      defaults.timing[evt][type] = {
-        delay: 0,
-        timeout: 0
-      };
-
-      schema['timing.' + evt + '.' + type + '.delay'] = {
-        type: Number,
-        defaultValue: 0
-      };
-      schema['timing.' + evt + '.' + type + '.timeout'] = {
-        type: Number,
-        defaultValue: 0
-      };
-    });
-  });
-
-  // Receive preferences are a bit different.
-  // 
-  // Note that digest exists for future use but is currently not in-scope to be
-  // supported in Notifications 1.0
-  // 
-  // {
-  //    preferences:{
-  //        email:{
-  //            opt1:['<event name>', '<event name>', '<event name>'],
-  //            opt2:['<event name>', '<event name>'],
-  //            opt3:['<event name>']
-  //        },
-  //        push:{
-  //            opt1:['<event name>', '<event name>', '<event name>'],
-  //            opt2:['<event name>', '<event name>'],
-  //            opt3:['<event name>']
-  //        },
-  //        ...
-  //    }
-  // }
-  schema.preferences = {
-    type: Object
-  };
-  defaults.preferences = {};
-
   notificationTypes.forEach(function (type) {
-    defaults.preferences[type] = {};
+    var schemaPrefix;
+    if (type.multi === true) {
+      defaults[type.type] = [];
+      schemaPrefix = type.type + '.$';
+    } else {
+      defaults[type.type] = {};
+      schemaPrefix = type.type;
+    }
+
+    // "When" - receive preferences like "always" and "night"
+    schema[schemaPrefix + '.when'] = {
+      type: Object
+    };
+    if (type.multi !== true) defaults[type.type].when = {};
 
     receivePreferenceOptions.forEach(function (opt) {
-      defaults.preferences[type][opt] = [];
+      if (type.multi !== true) defaults[type.type].when[opt] = [];
 
-      schema['preferences.' + type + '.' + opt] = {
+      schema[schemaPrefix + '.when.' + opt] = {
         type: [String],
         allowedValues: events
       };
     });
-  });
 
-  schema.webhooks = {
-    type: Object
-  };
-  defaults.webhooks = {};
-
-  events.forEach(function (evt) {
-    defaults.webhooks[evt] = {
-      url: '',
-      headers: {},
-      method: ''
-    };
-
-    schema['webhooks.' + evt] = {
+    schema[schemaPrefix + '.events'] = {
       type: Object
     };
+    if (type.multi !== true) defaults[type.type].events = {};
 
-    schema['webhooks.' + evt + '.url'] = {
-      type: String
-    };
+    events.forEach(function (evt) {
+      schema[schemaPrefix + '.events.evt'] = {
+        type: Object
+      };
 
-    // Headers are just key/value pairs
-    schema['webhooks.' + evt + '.headers'] = {
+      if (type.multi !== true) defaults[type.type].events[evt] = {
+        timing: {
+          delay: 0,
+          timeout: 0
+        },
+        templates: {
+          body: '',
+          subject: ''
+        }
+      };
+
+      // Timing...
+      schema[schemaPrefix + '.events.' + evt + '.timing'] = {
+        type: Object
+      };
+
+      schema[schemaPrefix + '.events.' + evt + '.timing.delay'] = {
+        type: Number,
+        defaultValue: 0
+      };
+
+      schema[schemaPrefix + '.events.' + evt + '.timing.timeout'] = {
+        type: Number,
+        defaultValue: 0
+      };
+
+      // Templates...
+      schema[schemaPrefix + '.events.' + evt + '.templates'] = {
+        type: Object
+      };
+
+      schema[schemaPrefix + '.events.' + evt + '.templates.body'] = {
+        type: String,
+        defaultValue: ''
+      };
+
+      schema[schemaPrefix + '.events.' + evt + '.templates.subject'] = {
+        type: String,
+        defaultValue: ''
+      };
+
+      // Arbitrary config per type per event
+      schema[schemaPrefix + '.events.' + evt + '.config'] = {
+        type: Object,
+        blackbox: true
+      };
+    });
+
+    // Arbitrary config per type for all events of that type
+    schema[schemaPrefix + '.config'] = {
       type: Object,
       blackbox: true
-    };
-
-    // Method (POST/GET/PUT, etc)
-    schema['webhooks.' + evt + '.method'] = {
-      type: String,
-      allowedValues: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
     };
   });
 
   Configuration.setSchemaForPrefix(prefix, schema);
 
   if (!Configuration.hasDefaultForPrefix(prefix)) {
-    Configuration.setDefaultForPrefix(prefix, defaults);
+    // Configuration.setDefault({
+    //   emissary: defaults
+    // });
+    Configuration.setDefaultForPrefix('emissary', defaults);
   }
-
 };

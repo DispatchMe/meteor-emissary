@@ -19,7 +19,27 @@ This package uses the [`dispatch:configuration`](https://github.com/DispatchMe/m
 ```js
 Emissary.emit({
   events:['<event 1>', '<event 2>'],
-  notificationTypes:['push', 'sms', 'email'],
+  notificationTypes:[{
+    type:'push',
+    multi:false,
+    formatter:function(recipient) {
+      return {
+        userId:recipient._id
+      }
+    }
+  }, {
+    type:'sms',
+    multi:false,
+    formatter:function(recipient) {
+      return recipient.phoneNumber;
+    }
+  }, {
+    type:'email',
+    multi:true,
+    formatter:function(recipient, recipientConfig) {
+      return recipientConfig.conf.emailAddress;
+    }
+  }],
   receivePreferences:[{
     type:'always',
     check:function(){
@@ -48,25 +68,106 @@ events:['userLoggedIn', 'todoListCreated', 'todoItemCompleted']
 **IMPORTANT!** - event names are used as keys in the configuration document in MongoDB. As such, they cannot have dots/periods in them nor can they start with a dollar sign.
 
 #### notificationTypes
-Notification types in this package should match one-to-one with the types registered with `Emissary.registerType`. Here, you must also register a "to formatter" function to return the `to` property of the job in the proper format for that notification type. For example, the `to` property for an `'email'` type is just a string, while the `to` property of a `'webhook'` type is a dictionary with several key/value pairs.
+Notification types in this package should match their `type` properties one-to-one with the types registered with `Emissary.registerType`. The built-in Emissary types (`sms`, `email`, `push`, `webhook`) are already registered, with `webhook` being a `multi:true` notification type (see below).
 
-The built-in Emissary types (`email`, `sms`, `push`, and `webhook`) are already registered, but if you add your own type, you must register the "to formatter" like so:
+##### `formatter` Function
+This function returns the value that is passed as the `to` property to `Emissary.queueTask`. Obviously this should be something that the workers on the other side of the equation can use. It receives four arguments:
 
-```js
-EmissaryRouter.init({
-  (...)
-  notificationTypes:['email', 'sms', 'push', 'webhook', 'myNewType']
-  (...)
-});
+1. `recipient` - the value returned by your `retrieveEntity` function
+2. `recipientConfig` - see below
+3. `eventName` - the name of the event sent with `EmissaryRouter.send`
+4. `eventData` - the data passed along with the event name to `EmissaryRouter.send`
 
-// And later...
+The `recipientConfig` argument is the combined type-level configuration AND type/event-level configuration (more specific). The type/event-level configuration overrides individual keys in the type-level configuration. For example, given the following:
 
-EmissaryRouter.registerToFormatter('myNewType', function(recipient) {
-  return {
-    foo:recipient.foo
+```json
+{
+  "notifications":{
+    "sms":{
+      "config":{
+        "foo":"bar",
+        "nested":{
+          "other":"field"
+        }
+      },
+      "events":{
+        "event1":{
+          "config":{
+            "nested":{
+              "other2":"field2"
+            }
+          }
+        }
+      }
+    }
   }
-});
+}
 ```
+
+...the value of `recipientConfig` will be:
+
+```json
+{
+  "foo":"bar",
+  "nested":{
+    "other":"field",
+    "other2":"field2"
+  }
+}
+```
+
+##### The `multi` option
+The `multi` property defines if there could potentially be **multiple** different configurations for this type. For example, you may want to use the `email` transport but have different configurations for "work email" vs "personal email". In this case, the value of `recipientConfig.conf` in the `formatter` function is the value for the particular configuration set that should be sent. Take, for example, the following configuration data:
+
+```json
+{
+  "notifications":{
+    "email":[
+      {
+        "when":{
+          "always":["event1"],
+          "daytime_only":["event2"]
+        },
+        "events":{
+          "event1":{
+            "templates":{...},
+            "timing":{...},
+            "config":{
+              "emailAddress":"email1@test.com"
+            }
+          }, 
+          "event2":{
+            "templates":{...},
+            "timing":{...},
+            "config":{}
+          }
+        }, 
+        "config":{
+          "emailAddress":"default@test.com"
+        }
+      }, {
+        "when":{
+          "night_only":["event3"]
+        },
+        "events":{
+          "event3":{
+            "templates":{...},
+            "timing":{...},
+            "config":{}
+          }  
+        },
+        "config":{
+          "emailAddress":"other@test.com"
+        }
+      }
+    ]
+  }
+}
+```
+
+With this configuration, if you send `event1` and this recipient is returned by the `getPotentialRecipientsForEvent` function, it will send an email to `"email1@test.com"`. If you send `event2` during the day, it will send an email to `"default@test.com"` using the configuration in `email[0].events.event2`, since the config is inherited and deep-extended. Likewise, if you send `event3` at nighttime, it will send an email to `"other@test.com"`.
+
+**Important**: there is currently one caveat with using arrays with the `dispatch:configuration` package - arrays are extended using full replacement. Meaning, if the above recipient can inherit from another entity's configuration, then it will not inherit any of the elements in the `notifications.email` array unless its own `notifications.email` array is not defined.
 
 #### receivePreferences
 Your recipients may want to receive different messages for different events, well, differently. `EmissaryRouter` lets you define one or more "receive preference" types with a function to determine if that type is currently valid. Those functions are then used internally by the router to determine if the recipient should be sent a message for a particular event.

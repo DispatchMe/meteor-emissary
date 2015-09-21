@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary',
   summary: 'Extensible/configurable notifications package',
-  version: '0.0.3'
+  version: '0.1.1'
 });
 
 Package.onUse(function (api) {

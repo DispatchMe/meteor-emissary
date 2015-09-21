@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary-router',
   summary: 'Config-based decision logic and message queuing for Emissary',
-  version: '0.0.3'
+  version: '0.1.1'
 });
 
 Package.onUse(function (api) {
@@ -13,8 +13,9 @@ Package.onUse(function (api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:configuration@0.0.2',
-    'dispatch:emissary@0.0.3'
+    'dispatch:configuration@0.0.3',
+    'dispatch:emissary@0.1.1',
+    'gfk:underscore-deep@1.0.0'
   ], 'server');
 
   api.addFiles([
@@ -34,9 +35,9 @@ Npm.depends({
 Package.onTest(function (api) {
   api.use('sanjo:jasmine@0.16.4', ['client', 'server']);
   api.use([
-    'dispatch:emissary@0.0.3',
+    'dispatch:emissary@0.1.1',
     'dispatch:emissary-router',
-    'dispatch:configuration@0.0.2'
+    'dispatch:configuration@0.0.3'
   ], 'server');
 
   api.addFiles([
