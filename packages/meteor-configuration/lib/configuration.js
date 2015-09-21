@@ -402,11 +402,12 @@ Configuration.setDefault = function (doc, callback) {
  * @param {Function} callback
  */
 Configuration.setDefaultForPrefix = function (prefix, data, callback) {
-  Configuration.Collection.update('_default', {
-    $set: {
-      prefix: data
-    }
-  }, callback);
+  var modifier = {
+    $set: {}
+  };
+  modifier.$set[prefix] = data;
+
+  Configuration.Collection.update('_default', modifier, callback);
 };
 
 /**
