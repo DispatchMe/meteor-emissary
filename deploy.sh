@@ -21,8 +21,8 @@ git push origin master
 git tag v$NEW_VERSION
 git push origin --tags
 
-cd packages/emissary && meteor publish && cd ../
-cd packages/mandrill && meteor publish && cd ../
-cd packages/router && meteor publish && cd ../
-cd packages/twilio && meteor publish && cd ../
-cd packages/webhook && meteor publish && cd ../
+cd packages/emissary && meteor publish && cd ../../
+cd packages/mandrill && meteor publish && cd ../../
+cd packages/router && meteor publish && cd ../../
+cd packages/twilio && meteor publish && cd ../../
+cd packages/webhook && meteor publish && cd ../../
