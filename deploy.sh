@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-BRANCH=$(git branch)
+BRANCH=$(git branch | awk '/^\*/{print $2}')
 
 if [[ "$BRANCH" != "master" ]]; then
   echo "Cannot push non-master branch!"
