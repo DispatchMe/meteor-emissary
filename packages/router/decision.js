@@ -42,6 +42,8 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
     msg.templateData = templateData;
   });
 
+  Emissary.log('Got %d messages for event %s', messages.length, eventName);
+
   return messages;
 };
 

@@ -162,7 +162,7 @@ EmissaryRouter.send = function (eventName, eventData) {
   };
 
   messages.forEach(function (msg) {
-    Emissary.queueTask(msg.type, msg, transform);
+    Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
   });
 };
 

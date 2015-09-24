@@ -11,6 +11,11 @@ var queue = new JobCollection('Emissary.Jobs');
 // to check status via another API
 var externalIds = new Mongo.Collection('emissary.external_ids');
 
+Emissary.collections = {
+  jobs: queue,
+  externalIds: externalIds
+};
+
 EmissaryTest = {
   queue: queue,
   externalIds: externalIds
@@ -18,7 +23,10 @@ EmissaryTest = {
 /**
  * Start the workers to send notifications
  */
-Emissary.workQueue = function () {
+Emissary.workQueue = function (checkInterval) {
+  checkInterval = checkInterval || 5000;
+
+  queue.promote(checkInterval);
   queue.startJobServer();
 };
 
@@ -211,7 +219,7 @@ Emissary.registerWorker = function (taskName, options, worker) {
   return queue.processJobs(taskName, _.extend({
     workTimeout: 5 * 60 * 1000
   }, options), function (job, callback) {
-    var jobObj = new EventTasker.drivers._JobsCollectionMessage(job);
+    var jobObj = new EmissaryJob(job);
     try {
       worker(jobObj);
     } catch (err) {
@@ -249,11 +257,15 @@ Emissary.queueTask = function (taskName, data, transform) {
   }
 
   // "Cancel If" logic will go here when we want to add it
+  Emissary.log('Queuing task with data:', data);
 
   check(data, {
     bodyTemplate: String,
+    timeout: Match.Optional(Number),
+    delay: Match.Optional(Number),
     subjectTemplate: Match.Optional(String),
     templateData: Match.Optional(Object),
+
     // Format of "to" depends on the transport
     to: Emissary._types[taskName],
 
@@ -262,6 +274,15 @@ Emissary.queueTask = function (taskName, data, transform) {
   });
 
   var job = new Job(queue, taskName, data);
+
+  // Set max retry limit. Try up to 5 times, waiting 10 seconds between tries. This can be overrideen
+  // with the transform function
+  job.retry({
+    retries: 5,
+    wait: 10000,
+    backoff: 'constant'
+  });
+
   if (transform && _.isFunction(transform)) {
     job = transform(job, data);
   }

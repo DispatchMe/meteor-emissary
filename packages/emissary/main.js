@@ -35,3 +35,6 @@ Emissary.registerType('webhook', {
 Emissary.registerType('push', {
   userId: String
 });
+
+// Use this so we can set up logging transports in the future if we want to
+Emissary.log = console.log;
