@@ -8,7 +8,7 @@ if [[ "$BRANCH" != "master" ]]; then
   exit 1
 fi
 
-bash test.sh
+# bash test.sh
 
 NEW_VERSION=$(node bumpVersions.js $1)
 
