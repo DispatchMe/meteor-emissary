@@ -266,6 +266,7 @@ EmissaryRouter._defineSchema = function () {
 
   Configuration.setSchemaForPrefix(prefix, schema);
 
+  console.log('Right here');
   if (!Configuration.hasDefaultForPrefix(prefix)) {
     Configuration.setDefaultForPrefix(prefix, defaults);
   }

@@ -13,7 +13,7 @@ Package.onUse(function (api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:configuration@0.0.3',
+    'dispatch:configuration@0.0.4',
     'dispatch:emissary@0.2.1',
     'gfk:underscore-deep@1.0.0'
   ], 'server');
@@ -36,7 +36,7 @@ Package.onTest(function (api) {
   api.use([
     'dispatch:emissary@0.2.1',
     'dispatch:emissary-router',
-    'dispatch:configuration@0.0.3'
+    'dispatch:configuration@0.0.4'
   ], 'server');
 
   api.addFiles([
