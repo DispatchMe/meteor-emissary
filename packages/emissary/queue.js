@@ -257,7 +257,7 @@ Emissary.queueTask = function (taskName, data, transform) {
   }
 
   // "Cancel If" logic will go here when we want to add it
-  Emissary.log('Queuing task with data:', data);
+  Emissary.log('Queuing task: ' + taskName);
 
   check(data, {
     bodyTemplate: String,
