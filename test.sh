@@ -6,7 +6,7 @@ jshint .
 
 runTestsFor() {
   echo "Running tests for $1"
-  PACKAGE_DIRS=./packages velocity test-package packages/$1 --ci 
+  PACKAGE_DIRS=./packages velocity test-package packages/$1 --ci --release METEOR@1.2.0.1
   echo "------------------"
 }
 
