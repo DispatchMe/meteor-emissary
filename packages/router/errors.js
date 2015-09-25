@@ -22,8 +22,11 @@ Emissary.on('turnOff', function (data) {
   var reason = data.reason;
   var resolution = data.resolution;
   var type = job.getInfo().type;
-  var jobData = job.getData();
+  var jobData = job.getMessage();
   var recipient = jobData.recipient;
 
-  EmissaryRouter.ConfigurationErrors.addNew(type, reason, recipient[0], recipient[1], resolution);
+  if (recipient && _.isArray(recipient)) {
+    EmissaryRouter.ConfigurationErrors.addNew(type, reason, recipient[0], recipient[1], resolution);
+  }
+
 });

@@ -33,7 +33,7 @@ MandrillTransport.prototype.send = function (job) {
   });
 
   job.log('info', 'Mandrill response', response);
-  var interpretedResponse = interpretResponse(response);
+  var interpretedResponse = interpretResponse(response.data[0]);
   job.handleResponse(interpretedResponse);
 };
 
