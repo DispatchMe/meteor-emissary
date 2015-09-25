@@ -29,8 +29,8 @@ EmissaryRouter = {};
  *                                                  application. It's used by the router to get a list of potential
  *                                                  recipients to start with before looking at configuration (receive
  *                                                  preferences, etc)
- * @param {Function} retrieveEntity Function to get an entity/document. The retrieved document is passed through the 
- *                                  "to formatters"
+ * @param {Function} retrieveEntities Function to get a list of entities/documents. The retrieved document is passed 
+ *                                    through the formatter functions for the respective type
  * @param {Function} generateTemplateData Function to return an object to be used as the data when generating the 
  *                                        body/subject templates. Receives eventName and eventData as arguments
  * @param {Function} [transformJob] Function passed as the `transform` argument when running Emissary.queueTask. Allows
@@ -54,7 +54,7 @@ EmissaryRouter.init = function (config) {
     }],
     prefix: Match.Optional(String),
     getPotentialRecipientsForEvent: Function,
-    retrieveEntity: Function,
+    retrieveEntities: Function,
     generateTemplateData: Function,
     transformJob: Match.Optional(Function),
     skipFilter: Match.Optional(Function)
@@ -150,6 +150,7 @@ EmissaryRouter.init = function (config) {
  * @return {[type]}           [description]
  */
 EmissaryRouter.send = function (eventName, eventData) {
+  console.log('Router sending message');
   var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
   var transform = function (job, data) {
     job.delay(data.delay);

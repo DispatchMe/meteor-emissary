@@ -57,17 +57,15 @@ describe('generateMessages', function () {
       getPotentialRecipientsForEvent: function () {
         return [];
       },
-      retrieveEntity: function (type, id) {
-        if (id === '1') {
-          return {
+      retrieveEntities: function () {
+        return {
+          'foo_1': {
             type1value: 'type1value',
             type2value: 'type2value'
-          };
-        } else if (id === '2') {
-          return {};
-        } else if (id === '3') {
-          return {};
-        }
+          },
+          'foo_2': {},
+          'foo_3': {}
+        };
       },
       generateTemplateData: function () {
         return {
@@ -292,7 +290,10 @@ describe('generateMessages', function () {
   });
 
   it('should run all the config functions with the correct arguments', function () {
-    spyOn(EmissaryRouter._config, 'retrieveEntity').and.returnValue({});
+    spyOn(EmissaryRouter._config, 'retrieveEntities').and.returnValue({
+      'foo_1': {},
+      'foo_2': {}
+    });
     spyOn(EmissaryRouter._config, 'generateTemplateData').and.returnValue({});
     EmissaryRouter._generateMessages([
       ['foo', '1'],
@@ -301,9 +302,15 @@ describe('generateMessages', function () {
       someKey: 'someVal'
     });
 
-    expect(EmissaryRouter._config.retrieveEntity.calls.count()).toEqual(2);
-    expect(EmissaryRouter._config.retrieveEntity.calls.argsFor(0)).toEqual(['foo', '1']);
-    expect(EmissaryRouter._config.retrieveEntity.calls.argsFor(1)).toEqual(['foo', '2']);
+    expect(EmissaryRouter._config.retrieveEntities.calls.count()).toEqual(1);
+    expect(EmissaryRouter._config.retrieveEntities.calls.argsFor(0)).toEqual(
+      [
+        [
+          ['foo', '1'],
+          ['foo', '2']
+        ]
+      ]
+    );
 
     expect(EmissaryRouter._config.generateTemplateData.calls.count()).toEqual(1);
     expect(EmissaryRouter._config.generateTemplateData.calls.argsFor(0)).toEqual(['event1', {

@@ -30,11 +30,23 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
     templateData = EmissaryRouter._config.generateTemplateData(eventName, eventData);
   }
 
-  var bulkConfig = Configuration.getForEntities(recipients);
+  var bulkConfig = Configuration.getForEntities(recipients, eventData);
   var messages = [];
 
+  var retrieveEntities = EmissaryRouter._config.retrieveEntities;
+  if (!retrieveEntities || !_.isFunction(retrieveEntities)) {
+    throw new Emissary.Error('Missing retrieve entities function on EmissaryRouter');
+  }
+
+  /**
+   * The retrieveEntities function should return a key/value 
+   * @type {[type]}
+   */
+  var entities = retrieveEntities(recipients);
+
   bulkConfig.forEach(function (conf, idx) {
-    messages = messages.concat(getMessagesForRecipient(recipients[idx], conf, eventName, eventData));
+    messages = messages.concat(getMessagesForRecipient(recipients[idx],
+      entities[recipients[idx][0] + '_' + recipients[idx][1]] || null, conf, eventName, eventData));
   });
 
   // Add the template data to each message
@@ -47,15 +59,9 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
   return messages;
 };
 
-function getMessagesForRecipient(recipientInfo, recipientConfig, eventName, eventData) {
-  var retrieveEntity = EmissaryRouter._config.retrieveEntity;
-  if (!retrieveEntity || !_.isFunction(retrieveEntity)) {
-    throw new Emissary.Error('Missing retrieve entity function on EmissaryRouter');
-  }
-  var recipient = retrieveEntity(recipientInfo[0], recipientInfo[1]);
-
+function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, eventName, eventData) {
   if (!recipient) {
-    throw new Emissary.Error('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
+    console.warn('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
   }
 
   var messages = getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData);
@@ -135,7 +141,7 @@ function getInterpretedConfigForEvent(conf, eventName) {
  * Get all of the notification types to send to a particular recipient
  * for the given event
  *
- * @param  {Object} recipient   The recipient, retrieved using retrieveEntity()
+ * @param  {Object} recipient   The recipient, retrieved using retrieveEntities()
  * @param {Array} recipientInfo The tuple for interaction with dispatch:configuration [entity_type, entity_id]
  * @param  {Object} recipientConfig               Inherited(?) configuration
  * @param  {String} eventName                     The name of the event
@@ -149,6 +155,27 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
   var eventsList;
   var conf;
   var checkFunction;
+
+  var typesWithConfigurationErrors = _.pluck(EmissaryRouter.ConfigurationErrors.collection.find({
+    entityType: recipientInfo[0],
+    entityId: recipientInfo[1],
+    status: 'unresolved'
+  }, {
+    fields: {
+      type: 1
+    }
+  }).fetch(), 'type');
+
+  var skipMessageTypes = [];
+  // Allow users to define their own logic for skipping certain notification types
+  // based on certain conditions
+  if (_.isFunction(EmissaryRouter._config.skipFilter)) {
+    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
+  }
+
+  // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
+  // type of notification.
+  skipMessageTypes = skipMessageTypes.concat(typesWithConfigurationErrors);
 
   function checkWhenAgainstEvent(when, notificationTypesByPreference) {
     for (var preferenceType in when) {
@@ -231,25 +258,6 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
     //        }
     //    ]
     // }
-
-    var skipMessageTypes = [];
-    // Allow users to define their own logic for skipping certain notification types
-    // based on certain conditions
-    if (_.isFunction(EmissaryRouter._config.skipFilter)) {
-      skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
-    }
-
-    // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
-    // type of notification.
-    skipMessageTypes = skipMessageTypes.concat(_.pluck(EmissaryRouter.ConfigurationErrors.collection.find({
-      entityType: recipientInfo[0],
-      entityId: recipientInfo[1],
-      status: 'unresolved'
-    }, {
-      fields: {
-        type: 1
-      }
-    }).fetch(), 'type'));
 
     // Go through each list in the notificationTypesByPreference. If it's not empty, we use the user-defined function to
     // determine if that "preference" is currently valid. For example if the preference is "night", then the 
