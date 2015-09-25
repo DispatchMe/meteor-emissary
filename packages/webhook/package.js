@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary-transport-webhook',
   summary: 'Webhook transport for emissary',
-  version: '0.3.3'
+  version: '0.3.4'
 });
 
 Package.onUse(function (api) {
@@ -13,7 +13,7 @@ Package.onUse(function (api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:emissary@0.3.3'
+    'dispatch:emissary@0.3.4'
 
   ], 'server');
 
@@ -31,7 +31,7 @@ Package.onTest(function (api) {
   api.use('sanjo:jasmine@0.16.4', ['client', 'server']);
   api.use([
     'http',
-    'dispatch:emissary@0.3.3',
+    'dispatch:emissary@0.3.4',
     'dispatch:emissary-transport-webhook'
   ], 'server');
 
