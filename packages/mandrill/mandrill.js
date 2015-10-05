@@ -65,7 +65,6 @@ MandrillTransport.prototype.generateRequest = function generateRequest(data) {
 
   return {
     key: this._config.key,
-    // '0mJqtQHFpOT5-PF_Y951Ng'
     template_name: data.bodyTemplate,
 
     // This is required by the API but we don't use it anywhere
