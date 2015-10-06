@@ -5,16 +5,18 @@ class Transport {
   constructor(config) {
     check(config, {
       from: String,
-      getBadge: Match.Optional(Function),
-      getPayload: Match.Optional(Function),
 
       // The push package will do the actual validation of this
-      pushConfig:Object
+      pushConfig: Object
     });
 
     this._config = config;
 
-    Push.Configure(config.pushConfig);
+    // Set the config to have no interval so we can send by ourselves
+    let pushConfig = _.extend({}, config.pushConfig, {
+      sendInterval: null
+    });
+    Push.Configure(pushConfig);
   }
 
   register() {
@@ -35,19 +37,19 @@ class Transport {
       }
     };
 
-    if (this._config.getPayload) {
-      params.payload = this._config.getPayload(data);
+    if (data.to.payload) {
+      params.payload = data.to.payload;
     }
 
-    if (this._config.getBadge) {
-      params.badge = this._config.getBadge(data);
+    if (data.to.badge) {
+      params.badge = data.to.badge;
     }
 
     try {
       const response = Push.serverSend(params);
       job.log('info', 'Response', response);
       job.done();
-    } catch(err) {
+    } catch (err) {
       job.done(err);
     }
   }

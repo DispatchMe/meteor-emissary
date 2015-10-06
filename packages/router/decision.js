@@ -2,7 +2,7 @@
 /* global Emissary:false - from dispatch:emissary */
 /* global EmissaryRouter:true */
 
-EmissaryRouter._determineRecipients = function (evt, data) {
+EmissaryRouter._determineRecipients = function(evt, data) {
   var get = EmissaryRouter._config.getPotentialRecipientsForEvent;
   if (!get || !_.isFunction(get)) {
     throw new Error('EmissaryRouter must be initialized with a getPotentialRecipientsForEvent function');
@@ -11,10 +11,10 @@ EmissaryRouter._determineRecipients = function (evt, data) {
   return get(evt, data);
 };
 
-EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
+EmissaryRouter._generateMessages = function(recipients, eventName, eventData) {
   // For each recipient we get a list of outgoing messages, which are constructed from the inherited
   // configuration and look like this:
-  // 
+  //
   // {
   //    type:'push|email|sms|webhook',
   //    to:{<different, depending on the type>},
@@ -39,18 +39,18 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
   }
 
   /**
-   * The retrieveEntities function should return a key/value 
+   * The retrieveEntities function should return a key/value
    * @type {[type]}
    */
   var entities = retrieveEntities(recipients);
 
-  bulkConfig.forEach(function (conf, idx) {
+  bulkConfig.forEach(function(conf, idx) {
     messages = messages.concat(getMessagesForRecipient(recipients[idx],
-      entities[recipients[idx][0] + '_' + recipients[idx][1]] || null, conf, eventName, eventData));
+      entities[recipients[idx][0] + '_' + recipients[idx][1]] || null, conf, eventName, eventData, templateData));
   });
 
   // Add the template data to each message
-  messages.forEach(function (msg) {
+  messages.forEach(function(msg) {
     msg.templateData = templateData;
   });
 
@@ -59,7 +59,7 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
   return messages;
 };
 
-function getMessagesForRecipient (recipientInfo, recipient, recipientConfig, eventName, eventData) {
+function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, eventName, eventData) {
   if (!recipient) {
     console.warn('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
   }
@@ -68,7 +68,7 @@ function getMessagesForRecipient (recipientInfo, recipient, recipientConfig, eve
 
   // Attach the original recipient info to each message if we need to adjust configuration in the workers (for
   // example, if an email hard-bounces and we need to turn it off)
-  messages.forEach(function (msg) {
+  messages.forEach(function(msg) {
     msg.recipient = recipientInfo;
   });
 
@@ -87,7 +87,7 @@ function getMessagesForRecipient (recipientInfo, recipient, recipientConfig, eve
  *    delay:<from timing.delay config>,
  *    timeout:<from timing.timeout config>
  * }
- * 
+ *
  * @param  {String} type            The type of notification (e.g. "push")
  * @param  {Array} recipient        Tuple of recipient info [entity_type, entity_id]
  * @param  {Object} recipientConfig Config retrieved for recipient, specific for this type and event.
@@ -95,7 +95,7 @@ function getMessagesForRecipient (recipientInfo, recipient, recipientConfig, eve
  * @param  {Object} eventData       Data about the event
  * @return {Object}                 Message to send
  */
-function generateMessageForType (type, recipient, recipientConfig, eventName, eventData) {
+function generateMessageForType(type, recipient, recipientConfig, eventName, eventData, templateData) {
   var messageTypeConfig = _.findWhere(EmissaryRouter._config.notificationTypes, {
     type: type
   });
@@ -114,22 +114,22 @@ function generateMessageForType (type, recipient, recipientConfig, eventName, ev
     bodyTemplate: recipientConfig.templates.body,
     delay: recipientConfig.timing.delay,
     timeout: recipientConfig.timing.timeout,
-    to: toFormatter(recipient, recipientConfig.config, eventName, eventData)
+    to: toFormatter(recipient, recipientConfig.config, eventName, eventData, templateData)
   };
 }
 
 /**
- * 
+ *
  * The "interpreted config" is everything relevant to the worker for sending an event of a particular type.
- * 
- * The arbitrary config is deep extended, meaning the event-specific config overwrites individual properties of the 
+ *
+ * The arbitrary config is deep extended, meaning the event-specific config overwrites individual properties of the
  * type-specific config.
  *
  * @param {Object} conf The full config for that type
  * @param {String} eventName The event name
  * @return {Object} The interpreted config with inheritance, etc
  */
-function getInterpretedConfigForEvent (conf, eventName) {
+function getInterpretedConfigForEvent(conf, eventName) {
   return {
     templates: conf.events[eventName].templates,
     timing: conf.events[eventName].timing,
@@ -147,7 +147,7 @@ function getInterpretedConfigForEvent (conf, eventName) {
  * @param  {String} eventName                     The name of the event
  * @return {Array<String>}                        List of notification types, e.g ["push", "sms"]
  */
-function getNotificationMessagesForRecipient (recipient, recipientInfo, recipientConfig, eventName, eventData) {
+function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData, templateData) {
 
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
   var notificationTypeConfig;
@@ -177,7 +177,7 @@ function getNotificationMessagesForRecipient (recipient, recipientInfo, recipien
   // type of notification.
   skipMessageTypes = skipMessageTypes.concat(typesWithConfigurationErrors);
 
-  function checkWhenAgainstEvent (when, notificationTypesByPreference) {
+  function checkWhenAgainstEvent(when, notificationTypesByPreference) {
     for (var preferenceType in when) {
       if (!when.hasOwnProperty(preferenceType)) {
         continue;
@@ -260,8 +260,8 @@ function getNotificationMessagesForRecipient (recipient, recipientInfo, recipien
     // }
 
     // Go through each list in the notificationTypesByPreference. If it's not empty, we use the user-defined function to
-    // determine if that "preference" is currently valid. For example if the preference is "night", then the 
-    // user-defined function could check if it's currently night time for that recipient and return `true`, else 
+    // determine if that "preference" is currently valid. For example if the preference is "night", then the
+    // user-defined function could check if it's currently night time for that recipient and return `true`, else
     // return `false`.
     var receivePreference;
     var typeConfig;
@@ -290,7 +290,7 @@ function getNotificationMessagesForRecipient (recipient, recipientInfo, recipien
             typeIndex = typeConfig.index;
 
             if (!_.contains(skipMessageTypes, typeName)) {
-              messages.push(generateMessageForType(typeName, recipient, typeConfig.config, eventName, eventData));
+              messages.push(generateMessageForType(typeName, recipient, typeConfig.config, eventName, eventData, templateData));
             }
           }
         }
