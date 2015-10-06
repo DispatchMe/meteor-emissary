@@ -33,7 +33,9 @@ Emissary.registerType('webhook', {
 // The "to" property is just the user ID to pass to raix:push, but we could have more for different transports so 
 // use an object here
 Emissary.registerType('push', {
-  userId: String
+  userId: String,
+  badge: Match.Optional(Number),
+  payload: Match.Optional(Object)
 });
 
 // Use this so we can set up logging transports in the future if we want to

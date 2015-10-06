@@ -59,7 +59,7 @@ EmissaryRouter._generateMessages = function (recipients, eventName, eventData) {
   return messages;
 };
 
-function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, eventName, eventData) {
+function getMessagesForRecipient (recipientInfo, recipient, recipientConfig, eventName, eventData) {
   if (!recipient) {
     console.warn('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
   }
@@ -95,7 +95,7 @@ function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, even
  * @param  {Object} eventData       Data about the event
  * @return {Object}                 Message to send
  */
-function generateMessageForType(type, recipient, recipientConfig, eventName, eventData) {
+function generateMessageForType (type, recipient, recipientConfig, eventName, eventData) {
   var messageTypeConfig = _.findWhere(EmissaryRouter._config.notificationTypes, {
     type: type
   });
@@ -129,7 +129,7 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
  * @param {String} eventName The event name
  * @return {Object} The interpreted config with inheritance, etc
  */
-function getInterpretedConfigForEvent(conf, eventName) {
+function getInterpretedConfigForEvent (conf, eventName) {
   return {
     templates: conf.events[eventName].templates,
     timing: conf.events[eventName].timing,
@@ -147,7 +147,7 @@ function getInterpretedConfigForEvent(conf, eventName) {
  * @param  {String} eventName                     The name of the event
  * @return {Array<String>}                        List of notification types, e.g ["push", "sms"]
  */
-function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData) {
+function getNotificationMessagesForRecipient (recipient, recipientInfo, recipientConfig, eventName, eventData) {
 
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
   var notificationTypeConfig;
@@ -177,7 +177,7 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
   // type of notification.
   skipMessageTypes = skipMessageTypes.concat(typesWithConfigurationErrors);
 
-  function checkWhenAgainstEvent(when, notificationTypesByPreference) {
+  function checkWhenAgainstEvent (when, notificationTypesByPreference) {
     for (var preferenceType in when) {
       if (!when.hasOwnProperty(preferenceType)) {
         continue;

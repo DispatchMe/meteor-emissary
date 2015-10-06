@@ -125,8 +125,11 @@ describe('email', function () {
       it(util.format('should handle status %s, reject_reason %s successfully', param.status, param.reject_reason ||
         '(none)'), function () {
         spyOn(HTTP, 'post').and.returnValue({
-          status: param.status,
-          reject_reason: param.reject_reason
+          statusCode:200,
+          data:[{
+            status: param.status,
+            reject_reason: param.reject_reason
+          }]
         });
 
         transport.send(job);

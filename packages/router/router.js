@@ -189,10 +189,12 @@ EmissaryRouter._defineSchema = function () {
     schema[schemaPrefix + '.when'] = {
       type: Object
     };
-    if (type.multi !== true) defaults[type.type].when = {};
+    if (type.multi !== true)
+      defaults[type.type].when = {};
 
     receivePreferenceOptions.forEach(function (opt) {
-      if (type.multi !== true) defaults[type.type].when[opt] = [];
+      if (type.multi !== true)
+        defaults[type.type].when[opt] = [];
 
       schema[schemaPrefix + '.when.' + opt] = {
         type: [String],
@@ -203,23 +205,25 @@ EmissaryRouter._defineSchema = function () {
     schema[schemaPrefix + '.events'] = {
       type: Object
     };
-    if (type.multi !== true) defaults[type.type].events = {};
+    if (type.multi !== true)
+      defaults[type.type].events = {};
 
     events.forEach(function (evt) {
       schema[schemaPrefix + '.events.evt'] = {
         type: Object
       };
 
-      if (type.multi !== true) defaults[type.type].events[evt] = {
-        timing: {
-          delay: 0,
-          timeout: 0
-        },
-        templates: {
-          body: '',
-          subject: ''
-        }
-      };
+      if (type.multi !== true)
+        defaults[type.type].events[evt] = {
+          timing: {
+            delay: 0,
+            timeout: 0
+          },
+          templates: {
+            body: '',
+            subject: ''
+          }
+        };
 
       // Timing...
       schema[schemaPrefix + '.events.' + evt + '.timing'] = {

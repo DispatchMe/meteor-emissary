@@ -4,7 +4,7 @@ Package.describe({
   version: '0.3.4'
 });
 
-Package.onUse(function (api) {
+Package.onUse(function(api) {
 
   api.use([
     // core
@@ -13,7 +13,7 @@ Package.onUse(function (api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:configuration@0.0.7',
+    'dispatch:configuration@0.1.0',
     'dispatch:emissary@0.3.4',
     'gfk:underscore-deep@1.0.0'
   ], 'server');
@@ -31,7 +31,7 @@ Npm.depends({
   'handlebars': '4.0.2'
 });
 
-Package.onTest(function (api) {
+Package.onTest(function(api) {
   api.use('sanjo:jasmine@0.18.0', ['client', 'server']);
   api.use([
     'dispatch:emissary@0.3.4',

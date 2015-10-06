@@ -13,5 +13,6 @@ runTestsFor() {
 runTestsFor "emissary"
 runTestsFor "mandrill"
 runTestsFor "router"
+runTestsFor "push"
 runTestsFor "twilio"
 runTestsFor "webhook"
