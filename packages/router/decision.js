@@ -147,7 +147,8 @@ function getInterpretedConfigForEvent(conf, eventName) {
  * @param  {String} eventName                     The name of the event
  * @return {Array<String>}                        List of notification types, e.g ["push", "sms"]
  */
-function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData, templateData) {
+function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig,
+  eventName, eventData, templateData) {
 
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
   var notificationTypeConfig;
@@ -290,7 +291,8 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
             typeIndex = typeConfig.index;
 
             if (!_.contains(skipMessageTypes, typeName)) {
-              messages.push(generateMessageForType(typeName, recipient, typeConfig.config, eventName, eventData, templateData));
+              messages.push(generateMessageForType(typeName, recipient, typeConfig.config,
+                eventName, eventData, templateData));
             }
           }
         }

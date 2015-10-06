@@ -7,14 +7,10 @@ describe('Push test', () => {
   beforeAll(() => {
     transport = new PushTransport({
       from: 'Dispatch',
-      getBadge: () => 1,
-      getPayload: () => {
-        return {};
-      },
-      pushConfig:{
-        certData:'asdf',
-        passphrase:'asdf',
-        keyData:'asdf',
+      pushConfig: {
+        certData: 'asdf',
+        passphrase: 'asdf',
+        keyData: 'asdf',
       }
     });
   });
@@ -23,7 +19,7 @@ describe('Push test', () => {
   });
 
   it('should defer accurately to raix:push', () => {
-    
+
 
     const userId = '12345';
 
@@ -32,7 +28,9 @@ describe('Push test', () => {
       bodyTemplate: 'You got a push. Yes you did.',
       subjectTemplate: 'You got a push',
       to: {
-        userId: userId
+        userId: userId,
+        badge: 1,
+        payload: {}
       }
     });
 
@@ -41,14 +39,14 @@ describe('Push test', () => {
     transport.send(jobSpy);
 
     expect(Push.serverSend).toHaveBeenCalledWith({
-      from:'Dispatch',
-      title:'You got a push',
-      text:'You got a push. Yes you did.',
-      query:{
-        userId:userId
+      from: 'Dispatch',
+      title: 'You got a push',
+      text: 'You got a push. Yes you did.',
+      query: {
+        userId: userId
       },
-      payload:{},
-      badge:1
+      payload: {},
+      badge: 1
     });
   });
 });
