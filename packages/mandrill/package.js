@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary-transport-mandrill',
   summary: 'Mandrill transport for emissary',
-  version: '0.5.1'
+  version: '0.6.0'
 });
 
 Package.onUse(function (api) {
@@ -13,7 +13,7 @@ Package.onUse(function (api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:emissary@0.5.1'
+    'dispatch:emissary@0.6.0'
 
   ], 'server');
 
@@ -32,7 +32,7 @@ Package.onTest(function (api) {
   api.use([
     'http',
     'dispatch:emissary-transport-mandrill',
-    'dispatch:emissary@0.5.1',
+    'dispatch:emissary@0.6.0',
   ], 'server');
 
   api.addFiles([
