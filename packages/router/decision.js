@@ -80,7 +80,7 @@ function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, even
  *
  * {
  *    type:'push|email|sms|webhook',
- *    to:{<different, depending on the type>},
+ *    transportConfig:{<different, depending on the type>},
  *    subjectTemplate:'<handlebars template>',
  *    bodyTemplate:'<either handlebars template or mandrill template ID, for email>',
  *    templateData:{<depending on eventPrefix and id},
@@ -103,9 +103,9 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
     throw new Emissary.Error('No notification type registered for "%s"', type);
   }
 
-  var toFormatter = messageTypeConfig.formatter;
-  if (!toFormatter || !_.isFunction(toFormatter)) {
-    throw new Emissary.Error('No "to" formatter registered for type %s', type);
+  var getConfig = messageTypeConfig.getConfig;
+  if (!getConfig || !_.isFunction(getConfig)) {
+    throw new Emissary.Error('No config getter registered for type %s', type);
   }
 
   return {
@@ -114,7 +114,7 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
     bodyTemplate: recipientConfig.templates.body,
     delay: recipientConfig.timing.delay,
     timeout: recipientConfig.timing.timeout,
-    to: toFormatter(recipient, recipientConfig.config, eventName, eventData, templateData)
+    transportConfig: getConfig(recipient, recipientConfig.config, eventName, eventData, templateData)
   };
 }
 

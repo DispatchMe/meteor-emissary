@@ -21,7 +21,7 @@ Emissary.queueTask('<message type>', {
   bodyTemplate:'<handlebars template>',
   subjectTemplate:'<optional handlebars template (depends on transport)>',
   templateData:{'<data to pass to templates>'},
-  to:'<format depends on message type>',
+  transportConfig:'<format depends on message type>',
   recipient:'<arbitrary recipient data of any type>'
 });
 ```
@@ -35,7 +35,9 @@ There are four built-in message types:
 ```javascript
 {
   // phone number
-  to:String
+  transportConfig:{
+    to:String
+  }
 }
 ```
 
@@ -43,14 +45,16 @@ There are four built-in message types:
 ```javascript
 {
   // email address
-  to:String
+  transportConfig:{
+    to:String
+  }
 }
 ```
 
 #### webhook
 ```javascript
 {
-  to: {
+  transportConfig: {
     headers: Match.Optional(Object),
     url: String,
     method: Match.OneOf('GET', 'POST', 'PUT', 'DELETE', 'PATCH'),
@@ -63,8 +67,10 @@ There are four built-in message types:
 #### push
 ```javascript
 {
-  to:{
-    userId:String
+  transportConfig:{
+    to:String,
+    badge:Match.Optional(Number),
+    payload:Match.Optional(Object)
   }
 }
 ```
@@ -106,10 +112,10 @@ You can also make use of `job.handleResponse()` to automatically run `job.done()
 
   // If there was an error, what was it?
   error:String,
-  
+
   // Emissary.ERROR_LEVEL.NONE|MINOR|FATAL|CATASTROPHIC
   errorLevel:Number,
-  
+
   // Current status of the message (specific to the transport)
   status:String
 

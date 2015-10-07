@@ -17,7 +17,7 @@ function errorHandler(error, req, res, next) {
   }
 }
 
-TwilioTransport = function (config) {
+TwilioTransport = function(config) {
   this._config = config;
   this._client = new Twilio({
     sid: config.sid,
@@ -27,10 +27,10 @@ TwilioTransport = function (config) {
 
 };
 
-TwilioTransport.prototype.register = function () {
+TwilioTransport.prototype.register = function() {
   var self = this;
   // Register endpoints
-  var middleware = function (path, connect) {
+  var middleware = function(path, connect) {
     connect.use(path, _.bind(self.authenticateWebhook, self));
     connect.use(path, errorHandler);
   };
@@ -40,7 +40,7 @@ TwilioTransport.prototype.register = function () {
   Emissary.registerWorker('sms', {}, _.bind(this.send, this));
 };
 
-TwilioTransport.prototype.authenticateWebhook = function (req, res, next) {
+TwilioTransport.prototype.authenticateWebhook = function(req, res, next) {
   if (this._config.skipAuth === true) {
     return next();
   }
@@ -57,7 +57,7 @@ TwilioTransport.prototype.authenticateWebhook = function (req, res, next) {
   }
 };
 
-TwilioTransport.prototype.handleWebhook = function (data) {
+TwilioTransport.prototype.handleWebhook = function(data) {
   Emissary.emit('info', 'Handling twilio webhook', data);
 
   var job = Emissary.getJobByExternalId('twilio', data.MessageSid);
@@ -71,7 +71,7 @@ TwilioTransport.prototype.handleWebhook = function (data) {
   job.handleResponse(interpretedResponse);
 };
 
-TwilioTransport.prototype.emitStatusEvent = function (data, response) {
+TwilioTransport.prototype.emitStatusEvent = function(data, response) {
   var eventData = {
     data: data,
     response: response
@@ -85,14 +85,14 @@ TwilioTransport.prototype.emitStatusEvent = function (data, response) {
   }
 };
 
-TwilioTransport.prototype.send = function (job) {
+TwilioTransport.prototype.send = function(job) {
   var data = job.getMessage();
 
   var body = Emissary.renderTemplate(data.bodyTemplate, data.templateData || {});
 
   /**
    * Response looks like this:
-   * { 
+   * {
    *     sid: 'SM13e11d47e4c94fcf90177db50173deba',
    *     date_created: 'Wed, 09 Sep 2015 14:48:31 +0000',
    *     date_updated: 'Wed, 09 Sep 2015 14:48:31 +0000',
@@ -112,9 +112,9 @@ TwilioTransport.prototype.send = function (job) {
    *     error_message: null,
    *     uri: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
    *       /SM13e11d47e4c94fcf90177db50173deba.json',
-   *     subresource_uris: { 
+   *     subresource_uris: {
    *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
-   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json' 
+   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json'
    *     },
    *     dateCreated: Wed Sep 09 2015 10:48:31 GMT-0400 (EDT),
    *     dateUpdated: Wed Sep 09 2015 10:48:31 GMT-0400 (EDT),
@@ -126,18 +126,24 @@ TwilioTransport.prototype.send = function (job) {
    *     priceUnit: 'USD',
    *     errorCode: null,
    *     errorMessage: null,
-   *     subresourceUris: { 
+   *     subresourceUris: {
    *         media: '/2010-04-01/Accounts/AC7425ab30a8809d5b4f714da8b3740860/Messages
-   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json' 
-   *     } 
+   *           /SM13e11d47e4c94fcf90177db50173deba/Media.json'
+   *     }
    * }
    */
   try {
-    var response = this._client.sendSMS({
-      to: data.to,
+    var options = {
+      to: data.transportConfig.to,
       body: body,
       statusCallback: Emissary.getFullUrlForEndpoint('/twilio/webhook')
-    });
+    };
+
+    if (data.transportConfig.from) {
+      options.from = data.transportConfig.from;
+    }
+
+    var response = this._client.sendSMS(options);
 
     // It might be possible that twilio hits the endpoint before we save this...
     job.linkToExternalId('twilio', response.sid);
@@ -163,7 +169,7 @@ TwilioTransport.prototype.send = function (job) {
 
 /**
  * Translates a response from the Twilio API into a response that we can pass to EmissaryJob.handleResponse
- * 
+ *
  * @param  {String} status    The status from Twilio
  * @param  {String} errorCode The error code (if applicable) from Twilio
  * @return {Object}           Response object
@@ -179,80 +185,80 @@ var interpretResponse = function interpretResponse(status, errorCode) {
   };
 
   switch (status) {
-  case 'delivered':
-    // Successful! Remove the record from the database (we can always look it up in Twilio if necessary)
-    response.ok = true;
-    response.done = true;
-    break;
-  case 'sending':
-  case 'sent':
-  case 'queued':
-    response.ok = true;
-    response.done = false;
-    break;
-  case 'undelivered':
-    switch (errorCode) {
-    case '30001':
-      // Queue overflow. Retry
-      response.error = 'Queue overflow';
-      response.errorLevel = ERROR_LEVEL.MINOR;
-      response.ok = false;
+    case 'delivered':
+      // Successful! Remove the record from the database (we can always look it up in Twilio if necessary)
+      response.ok = true;
+      response.done = true;
       break;
-    case '30002':
-      // Account suspended. ALERT ALERT CATASTROPHIC ERROR
-      response.error = 'Account suspended';
-      response.errorLevel = ERROR_LEVEL.CATASTROPHIC;
-      response.ok = false;
+    case 'sending':
+    case 'sent':
+    case 'queued':
+      response.ok = true;
+      response.done = false;
       break;
-    case '30003':
-      // Unreachable destination handset. Fatal
-      response.error = 'Unreachable destination';
-      response.errorLevel = ERROR_LEVEL.FATAL;
-      response.ok = false;
-      break;
-    case '30004':
-      // Message blocked (blacklist). Fatal, turn off future sms notifications
-      response.error = 'Blacklisted';
-      response.errorLevel = ERROR_LEVEL.FATAL;
-      response.ok = false;
-      break;
-    case '30005':
-      // Unknown destination handset. Number is unknown and may no longer exist. Fatal, turn off
-      response.error = 'Unknown destination';
-      response.errorLevel = ERROR_LEVEL.FATAL;
-      response.ok = false;
-      break;
-    case '30006':
-      // Landline or unreachable carrier. Fatal, turn off
-      response.error = 'Landline';
-      response.errorLevel = ERROR_LEVEL.FATAL;
-      response.ok = false;
-      break;
-    case '30007':
-      // Carrier violation. Content/spam filtering. Retry? This is up for debate.
-      response.error = 'Carrier violation (content/spam filtering)';
-      response.errorLevel = ERROR_LEVEL.MINOR;
-      response.ok = false;
-      break;
+    case 'undelivered':
+      switch (errorCode) {
+        case '30001':
+          // Queue overflow. Retry
+          response.error = 'Queue overflow';
+          response.errorLevel = ERROR_LEVEL.MINOR;
+          response.ok = false;
+          break;
+        case '30002':
+          // Account suspended. ALERT ALERT CATASTROPHIC ERROR
+          response.error = 'Account suspended';
+          response.errorLevel = ERROR_LEVEL.CATASTROPHIC;
+          response.ok = false;
+          break;
+        case '30003':
+          // Unreachable destination handset. Fatal
+          response.error = 'Unreachable destination';
+          response.errorLevel = ERROR_LEVEL.FATAL;
+          response.ok = false;
+          break;
+        case '30004':
+          // Message blocked (blacklist). Fatal, turn off future sms notifications
+          response.error = 'Blacklisted';
+          response.errorLevel = ERROR_LEVEL.FATAL;
+          response.ok = false;
+          break;
+        case '30005':
+          // Unknown destination handset. Number is unknown and may no longer exist. Fatal, turn off
+          response.error = 'Unknown destination';
+          response.errorLevel = ERROR_LEVEL.FATAL;
+          response.ok = false;
+          break;
+        case '30006':
+          // Landline or unreachable carrier. Fatal, turn off
+          response.error = 'Landline';
+          response.errorLevel = ERROR_LEVEL.FATAL;
+          response.ok = false;
+          break;
+        case '30007':
+          // Carrier violation. Content/spam filtering. Retry? This is up for debate.
+          response.error = 'Carrier violation (content/spam filtering)';
+          response.errorLevel = ERROR_LEVEL.MINOR;
+          response.ok = false;
+          break;
 
-    case '30009':
-      // Missing segment. Retry (network error)
-      response.error = 'Missing segment (network error)';
+        case '30009':
+          // Missing segment. Retry (network error)
+          response.error = 'Missing segment (network error)';
+          response.errorLevel = ERROR_LEVEL.MINOR;
+          response.ok = false;
+          break;
+        default: // Also '30008' for "unknown"
+          response.error = 'Unknown';
+          response.errorLevel = ERROR_LEVEL.MINOR;
+          response.ok = false;
+          break;
+      }
+      break;
+    default:
+      response.error = 'Unrecognized status (' + response.status + ')';
       response.errorLevel = ERROR_LEVEL.MINOR;
       response.ok = false;
       break;
-    default: // Also '30008' for "unknown"
-      response.error = 'Unknown';
-      response.errorLevel = ERROR_LEVEL.MINOR;
-      response.ok = false;
-      break;
-    }
-    break;
-  default:
-    response.error = 'Unrecognized status (' + response.status + ')';
-    response.errorLevel = ERROR_LEVEL.MINOR;
-    response.ok = false;
-    break;
 
   }
   return response;

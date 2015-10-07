@@ -23,7 +23,7 @@ EmissaryTest = {
 /**
  * Start the workers to send notifications
  */
-Emissary.workQueue = function (checkInterval) {
+Emissary.workQueue = function(checkInterval) {
   checkInterval = checkInterval || 5000;
 
   queue.promote(checkInterval);
@@ -33,15 +33,15 @@ Emissary.workQueue = function (checkInterval) {
 /**
  * Stop the workers (stop sending notifications)
  */
-Emissary.stopWorkingQueue = function () {
+Emissary.stopWorkingQueue = function() {
   queue.shutdownJobServer();
 };
 
 /**
- * A wrapper for the vsivsi:job for additional functionality and alternate error 
+ * A wrapper for the vsivsi:job for additional functionality and alternate error
  * handling
  */
-EmissaryJob = function (job) {
+EmissaryJob = function(job) {
   this._job = job;
 };
 
@@ -49,7 +49,7 @@ EmissaryJob = function (job) {
  * Retrieve the message data passed to the job via queueTask
  * @return {Object) The data
  */
-EmissaryJob.prototype.getMessage = function () {
+EmissaryJob.prototype.getMessage = function() {
   return this._job._doc.data;
 };
 
@@ -57,18 +57,18 @@ EmissaryJob.prototype.getMessage = function () {
  * Return info about the job (type, retries, status, etc)
  * @return {Object} The info
  */
-EmissaryJob.prototype.getInfo = function () {
+EmissaryJob.prototype.getInfo = function() {
   return this._job._doc;
 };
 
 /**
- * Finish a job. If the argument is empty, it will be finished successfully. Otherwise if `err` is defined, the job 
+ * Finish a job. If the argument is empty, it will be finished successfully. Otherwise if `err` is defined, the job
  * will be failed. If err is an instance of EmissaryFatalError, the job will be failed fatally, meaning it will not
  * be retried.
- * 
+ *
  * @param  {Error}   [err] Error, if the job failed
  */
-EmissaryJob.prototype.done = function (err) {
+EmissaryJob.prototype.done = function(err) {
   if (err) {
     var failOptions = {};
     if (err.name === 'EmissaryFatalError') {
@@ -82,13 +82,13 @@ EmissaryJob.prototype.done = function (err) {
 };
 
 /**
- * Log a message on the job. 
- * @param  {String} level If this is the only argument, it will be used as the "message" argument. Otherwise this will 
+ * Log a message on the job.
+ * @param  {String} level If this is the only argument, it will be used as the "message" argument. Otherwise this will
  *                        define the log level (e.g. "info" or "error")
  * @param  {String} [msg]   The message, if you want to also define the level
  * @param  {Object} [data]  Arbitrary data relevant to this message
  */
-EmissaryJob.prototype.log = function (level, msg, data) {
+EmissaryJob.prototype.log = function(level, msg, data) {
   if (!msg) {
     msg = level;
     level = 'info';
@@ -101,21 +101,21 @@ EmissaryJob.prototype.log = function (level, msg, data) {
 };
 
 /**
- * Get the database ID of a job. This is used for continuing work on a job if it was deferred due to some waiting 
+ * Get the database ID of a job. This is used for continuing work on a job if it was deferred due to some waiting
  * period.
  * @return {String} The job ID
  */
-EmissaryJob.prototype.getId = function () {
+EmissaryJob.prototype.getId = function() {
   return this._job._doc._id;
 };
 
 /**
  * Update a job given an interpreted response from the transport.
  *
- * Transports can use this function to update a job given a particular "response" received from a third-party. The 
+ * Transports can use this function to update a job given a particular "response" received from a third-party. The
  * transport is expected to format the response into the below "check" format, which is the interpreted by this
  * function to decide how to proceed.
- *   
+ *
  * @param  {Object} response The response
  * @param {Boolean} resonse.ok Is the response an "ok" response (IE, not an error)
  * @param {Boolean} response.done Is this the final response? Has the notification been sent successfully?
@@ -127,7 +127,7 @@ EmissaryJob.prototype.getId = function () {
  *                                     recipient fixes it. This is simply passed through to the "turnOff" event
  * @return {[type]}          [description]
  */
-EmissaryJob.prototype.handleResponse = function (response) {
+EmissaryJob.prototype.handleResponse = function(response) {
   check(response, {
     ok: Boolean,
     done: Boolean,
@@ -142,7 +142,7 @@ EmissaryJob.prototype.handleResponse = function (response) {
     if (response.done) {
       return this.done();
     }
-    // Do nothing - need to wait for the next status
+  // Do nothing - need to wait for the next status
   } else {
     var turnOffNotifications = false;
     var errorConstructor = Emissary.Error;
@@ -170,12 +170,12 @@ EmissaryJob.prototype.handleResponse = function (response) {
 };
 
 /**
- * Emits an event signaling that notifications to the recipient should be discontinued until a problem is resolved. 
+ * Emits an event signaling that notifications to the recipient should be discontinued until a problem is resolved.
  * Intentionally vague so the engineer can decide how to handle it.
  * @param  {String} reason     The reason the notifications need to be turned off
  * @param  {String} resolution A potential solution to the above issue
  */
-EmissaryJob.prototype.turnOffFutureNotifications = function (reason, resolution) {
+EmissaryJob.prototype.turnOffFutureNotifications = function(reason, resolution) {
   Emissary.emit('turnOff', {
     job: this,
     reason: reason,
@@ -184,14 +184,14 @@ EmissaryJob.prototype.turnOffFutureNotifications = function (reason, resolution)
 };
 
 /**
- * Record a link between this job and some other ID taken from an external source. Transports should use this function 
- * when using an API that is asynchronous, so in another process like an endpoint, the job can be retrieved given the 
+ * Record a link between this job and some other ID taken from an external source. Transports should use this function
+ * when using an API that is asynchronous, so in another process like an endpoint, the job can be retrieved given the
  * ID from the API and marked as done/failed
- *   
+ *
  * @param  {String} source The source of the external ID. E.g. "Twilio". Defined by the transport
  * @param  {String} id     The external ID
  */
-EmissaryJob.prototype.linkToExternalId = function (source, id) {
+EmissaryJob.prototype.linkToExternalId = function(source, id) {
   externalIds.insert({
     source: source,
     externalId: id,
@@ -206,34 +206,34 @@ EmissaryJob.prototype.linkToExternalId = function (source, id) {
  *       -options-worker---anywhere
  * @param  {String} taskName The name of the task to handle
  * @param  {Object} options  Options to be passed directly to JobCollection.processJobs
- * @param  {Function} worker   Function that takes the job as its only argument. The worker is expected to run 
+ * @param  {Function} worker   Function that takes the job as its only argument. The worker is expected to run
  *                             `job.done()` or `job.done(err)` as needed.
  *
  * @todo  Make timeout configurable
  */
-Emissary.registerWorker = function (taskName, options, worker) {
+Emissary.registerWorker = function(taskName, options, worker) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
 
   return queue.processJobs(taskName, _.extend({
     workTimeout: 5 * 60 * 1000
-  }, options), function (job, callback) {
+  }, options), function(job, callback) {
     var jobObj = new EmissaryJob(job);
     try {
       worker(jobObj);
     } catch (err) {
       Emissary.emit('error', err);
 
-      // Thinking is, if the worker threw an error without catching it, then 
-      // it's some sort of code-level error rather than a logic error. So the 
-      // worker would not have marked it done by itself. We need to fail it 
+      // Thinking is, if the worker threw an error without catching it, then
+      // it's some sort of code-level error rather than a logic error. So the
+      // worker would not have marked it done by itself. We need to fail it
       // explicitly.
       jobObj.done(err);
     } finally {
       // The callback makes it continue to work the queue. This lets us decide
-      // whether or not to "finish" the job inside of the actual worker and even 
-      // defer it to be handled later (e.g. for asynchronous callbacks for 
+      // whether or not to "finish" the job inside of the actual worker and even
+      // defer it to be handled later (e.g. for asynchronous callbacks for
       // certain message transports)
       callback();
     }
@@ -246,12 +246,12 @@ Emissary.registerWorker = function (taskName, options, worker) {
  * @see  https://github.com/vsivsi/meteor-job-collection#user-content-job-api
  * @param  {String} taskName The name of the task. Must match the taskName in `registerWorker` in order to be handled
  * @param  {Object} data Arbitrary data to pass to the worker
- * @param  {Function} [transform] If provided, this function will run on the job object. You can use this to apply 
+ * @param  {Function} [transform] If provided, this function will run on the job object. You can use this to apply
  *                                additional configuration to the job.
- *                                
+ *
  * @return {EmissaryJob} The job
  */
-Emissary.queueTask = function (taskName, data, transform) {
+Emissary.queueTask = function(taskName, data, transform) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
@@ -266,8 +266,8 @@ Emissary.queueTask = function (taskName, data, transform) {
     subjectTemplate: Match.Optional(String),
     templateData: Match.Optional(Object),
 
-    // Format of "to" depends on the transport
-    to: Emissary._types[taskName],
+    // Format depends on the transport
+    transportConfig: Emissary._types[taskName],
 
     // Put any additional data here
     recipient: Match.Optional(Match.Any)
@@ -292,12 +292,12 @@ Emissary.queueTask = function (taskName, data, transform) {
 };
 
 /**
- * Retrieve a job by ID. Simply wraps the JobCollection.getJob but returns an 
+ * Retrieve a job by ID. Simply wraps the JobCollection.getJob but returns an
  * instance of EmissaryJob instead.
  * @param  {String} id The job ID
  * @return {EmissaryJob|null}    The job, or null if it wasn't found
  */
-Emissary.getJobById = function (id) {
+Emissary.getJobById = function(id) {
   var job = queue.getJob(id);
   if (!job) {
     return null;
@@ -306,13 +306,13 @@ Emissary.getJobById = function (id) {
 };
 
 /**
- * Retrieve a job given a source and externalId for that source. Assumes you have previously linked a job to an 
+ * Retrieve a job given a source and externalId for that source. Assumes you have previously linked a job to an
  * external ID using `job.linkToExternalId()`
  * @param  {String} source     The source
  * @param  {String} externalId The external ID
  * @return {EmissaryJob|null}            The job, or null if it can't be found
  */
-Emissary.getJobByExternalId = function (source, externalId) {
+Emissary.getJobByExternalId = function(source, externalId) {
   var externalIdDoc = externalIds.findOne({
     source: source,
     externalId: externalId

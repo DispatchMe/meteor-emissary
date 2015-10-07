@@ -9,12 +9,12 @@ EmissaryRouter = {};
  *
  * @param {Object} config Config hash
  * @param {Array<String>} config.events The list of events that can be emitted through the router
- * @param {Array<String>} config.notificationTypes List of types of notifications (same types you register with 
- *                                                 Emissary.registerType). Defaults to ["email", "sms", "push", 
+ * @param {Array<String>} config.notificationTypes List of types of notifications (same types you register with
+ *                                                 Emissary.registerType). Defaults to ["email", "sms", "push",
  *                                                 "webhook"], IE what Emissary registers by default.
  * @param {Array<Object>} config.receivePreferences Different preferences for receiving notification types. For example
- *                                                  you may want to receive a "foo" notification "always", but only 
- *                                                  receive "bar" notifications at "night". In which case the "type" 
+ *                                                  you may want to receive a "foo" notification "always", but only
+ *                                                  receive "bar" notifications at "night". In which case the "type"
  *                                                  values would probably be ["always", "day", "night"]. The "check"
  *                                                  property is the function that will determine if, given the potential
  *                                                  recipient, that receiving preference applies. So, for example, the
@@ -25,13 +25,13 @@ EmissaryRouter = {};
  *                                 "notifications"
  * @param {Function} getPotentialRecipientsForEvent A function that takes an event name and event data as arguments,
  *                                                  and returns an array of tuples that will be passed directly to
- *                                                  the dispatch:configuration. This is completely unique to your 
+ *                                                  the dispatch:configuration. This is completely unique to your
  *                                                  application. It's used by the router to get a list of potential
  *                                                  recipients to start with before looking at configuration (receive
  *                                                  preferences, etc)
- * @param {Function} retrieveEntities Function to get a list of entities/documents. The retrieved document is passed 
+ * @param {Function} retrieveEntities Function to get a list of entities/documents. The retrieved document is passed
  *                                    through the formatter functions for the respective type
- * @param {Function} generateTemplateData Function to return an object to be used as the data when generating the 
+ * @param {Function} generateTemplateData Function to return an object to be used as the data when generating the
  *                                        body/subject templates. Receives eventName and eventData as arguments
  * @param {Function} [transformJob] Function passed as the `transform` argument when running Emissary.queueTask. Allows
  *                                for modification/configuration changes on the vsivsi:job-collection job before it is
@@ -40,13 +40,13 @@ EmissaryRouter = {};
  *                                recipient and event. For example, a failsafe to make sure that push notifications are
  *                                only attempted to be sent to some type of user.
  */
-EmissaryRouter.init = function (config) {
+EmissaryRouter.init = function(config) {
   check(config, {
     events: [String],
     notificationTypes: [{
       type: String,
       multi: Match.Optional(Boolean),
-      formatter: Function
+      getConfig: Function
     }],
     receivePreferences: [{
       type: String,
@@ -68,19 +68,23 @@ EmissaryRouter.init = function (config) {
     // Defaults
     config.notificationTypes = [{
       type: 'email',
-      formatter: function (recipient) {
-        return recipient.email;
+      getConfig: function(recipient) {
+        return {
+          to: recipient.email
+        };
       }
     }, {
       type: 'sms',
-      formatter: function (recipient) {
-        return recipient.phoneNumber;
+      getConfig: function(recipient) {
+        return {
+          to: recipient.phoneNumber
+        };
       }
     }, {
       type: 'push',
-      formatter: function (recipient) {
+      getConfig: function(recipient) {
         return {
-          userId: recipient._id
+          to: recipient._id
         };
       }
     }, {
@@ -88,13 +92,12 @@ EmissaryRouter.init = function (config) {
       multi: true,
 
       // Here, if it's multi, config will be the relevant element of the array instead of the array
-      formatter: function (recipient, config, eventName) {
-        // If there's config for the particular event, use that. Otherwise use 
+      formatter: function(recipient, config, eventName) {
+        // If there's config for the particular event, use that. Otherwise use
         if (config.webhook[eventName].config) {
           return config.webhook[eventName].config;
-        } else {
-          return config.webhook.config;
         }
+        return config.webhook.config;
       }
     }];
   }
@@ -139,20 +142,19 @@ EmissaryRouter.init = function (config) {
  *         },
  *         events:{
  *             event1:[
- *                 
+ *
  *             ]
  *         }
  *     }
- * 
+ *
  * }
- * @param  {[type]} eventName [description]
- * @param  {[type]} eventData [description]
- * @return {[type]}           [description]
+ * @param  {String} eventName Event name
+ * @param  {Object} eventData Arbitrary data to pass to the event handlers
  */
-EmissaryRouter.send = function (eventName, eventData) {
+EmissaryRouter.send = function(eventName, eventData) {
   console.log('Router sending message');
   var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
-  var transform = function (job, data) {
+  var transform = function(job, data) {
     job.delay(data.delay);
 
     if (_.isFunction(EmissaryRouter._config.transformJob)) {
@@ -162,12 +164,12 @@ EmissaryRouter.send = function (eventName, eventData) {
     return job;
   };
 
-  messages.forEach(function (msg) {
+  messages.forEach(function(msg) {
     Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
   });
 };
 
-EmissaryRouter._defineSchema = function () {
+EmissaryRouter._defineSchema = function() {
   var receivePreferenceOptions = _.pluck(this._config.receivePreferences, 'type');
   var prefix = this._config.prefix;
   var notificationTypes = this._config.notificationTypes;
@@ -175,7 +177,7 @@ EmissaryRouter._defineSchema = function () {
   var defaults = {};
   var schema = {};
 
-  notificationTypes.forEach(function (type) {
+  notificationTypes.forEach(function(type) {
     var schemaPrefix;
     if (type.multi === true) {
       defaults[type.type] = [];
@@ -192,7 +194,7 @@ EmissaryRouter._defineSchema = function () {
     if (type.multi !== true)
       defaults[type.type].when = {};
 
-    receivePreferenceOptions.forEach(function (opt) {
+    receivePreferenceOptions.forEach(function(opt) {
       if (type.multi !== true)
         defaults[type.type].when[opt] = [];
 
@@ -208,7 +210,7 @@ EmissaryRouter._defineSchema = function () {
     if (type.multi !== true)
       defaults[type.type].events = {};
 
-    events.forEach(function (evt) {
+    events.forEach(function(evt) {
       schema[schemaPrefix + '.events.evt'] = {
         type: Object
       };

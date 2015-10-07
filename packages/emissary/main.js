@@ -6,7 +6,7 @@ Emissary = new EventEmitter();
 
 Emissary._types = {};
 
-Emissary.registerType = function (type, schema) {
+Emissary.registerType = function(type, schema) {
   if (Emissary._types.hasOwnProperty(type)) {
     console.warn('Warning: overriding predefined Emissary type %s', type);
     throw new Emissary.Error('Schema has already been registered for type %s', type);
@@ -16,10 +16,14 @@ Emissary.registerType = function (type, schema) {
 };
 
 // The "to" property is just the email address
-Emissary.registerType('email', String);
+Emissary.registerType('email', {
+  to: String
+});
 
 // The "to" property is just the phone number
-Emissary.registerType('sms', String);
+Emissary.registerType('sms', {
+  to: String
+});
 
 // The "to" property has all of the following info:
 Emissary.registerType('webhook', {
@@ -30,7 +34,7 @@ Emissary.registerType('webhook', {
   expectStatus: Match.Optional(Number)
 });
 
-// The "to" property is just the user ID to pass to raix:push, but we could have more for different transports so 
+// The "to" property is just the user ID to pass to raix:push, but we could have more for different transports so
 // use an object here
 Emissary.registerType('push', {
   userId: String,

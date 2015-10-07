@@ -27,7 +27,7 @@ describe('Push test', () => {
     jobSpy.getMessage.and.returnValue({
       bodyTemplate: 'You got a push. Yes you did.',
       subjectTemplate: 'You got a push',
-      to: {
+      transportConfig: {
         userId: userId,
         badge: 1,
         payload: {}

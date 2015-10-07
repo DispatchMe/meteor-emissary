@@ -1,8 +1,8 @@
 /* global Emissary:false - from dispatch:emissary */
 /* global EmissaryTest:false - from dispatch:emissary */
 /* global MandrillTransport:false */
-describe('email', function () {
-  it('should generate the request body accurately', function () {
+describe('email', function() {
+  it('should generate the request body accurately', function() {
 
     var transport = new MandrillTransport({
       key: 'asdf1234',
@@ -11,7 +11,9 @@ describe('email', function () {
     });
     expect(transport.generateRequest({
       type: 'email',
-      to: 'testy@test.com',
+      transportConfig: {
+        to: 'testy@test.com',
+      },
       bodyTemplate: 'foobarbaz',
       subjectTemplate: 'The subject is {{foo.bar}}',
       templateData: {
@@ -44,17 +46,17 @@ describe('email', function () {
 
   var util = Npm.require('util');
 
-  describe('mocked mandrill responses', function () {
+  describe('mocked mandrill responses', function() {
     var job;
     var transport;
     var turnOffs = [];
-    beforeAll(function () {
-      Emissary.on('turnOff', function (data) {
+    beforeAll(function() {
+      Emissary.on('turnOff', function(data) {
         turnOffs.push(data);
       });
     });
 
-    beforeEach(function () {
+    beforeEach(function() {
       turnOffs = [];
       transport = new MandrillTransport({
         key: 'asdf1234',
@@ -65,7 +67,9 @@ describe('email', function () {
       // Bootstrap
       job = Emissary.queueTask('email', {
         bodyTemplate: '',
-        to: 'test@test.com'
+        transportConfig: {
+          to: 'test@test.com'
+        }
       });
 
       var jobId = job.getId();
@@ -121,12 +125,12 @@ describe('email', function () {
       error: Emissary.Error
     }];
 
-    params.forEach(function (param) {
+    params.forEach(function(param) {
       it(util.format('should handle status %s, reject_reason %s successfully', param.status, param.reject_reason ||
-        '(none)'), function () {
+        '(none)'), function() {
         spyOn(HTTP, 'post').and.returnValue({
-          statusCode:200,
-          data:[{
+          statusCode: 200,
+          data: [{
             status: param.status,
             reject_reason: param.reject_reason
           }]

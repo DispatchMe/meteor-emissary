@@ -2,12 +2,12 @@
 /* global TwilioTransport:false - from dispatch:emissary-transport-twilio */
 /* global Emissary:false - from dispatch:emissary */
 /* global EmissaryJob:false - from dispatch:emissary-job */
-describe('Twilio callback endpoint', function () {
+describe('Twilio callback endpoint', function() {
   var jobId;
 
   var turnOffs = [];
-  beforeAll(function () {
-    Emissary.on('turnOff', function (data) {
+  beforeAll(function() {
+    Emissary.on('turnOff', function(data) {
       turnOffs.push(data);
     });
 
@@ -20,13 +20,15 @@ describe('Twilio callback endpoint', function () {
     transport.register();
     Emissary.enableWebhooks();
   });
-  beforeEach(function () {
+  beforeEach(function() {
     turnOffs = [];
 
     // Bootstrap
     var job = Emissary.queueTask('sms', {
       bodyTemplate: '',
-      to: '+15555555555'
+      transportConfig: {
+        to: '+15555555555'
+      }
     });
     jobId = job.getId();
 
@@ -48,12 +50,12 @@ describe('Twilio callback endpoint', function () {
 
   });
 
-  afterEach(function () {
+  afterEach(function() {
     EmissaryTest.queue.remove({});
     EmissaryTest.externalIds.remove({});
   });
 
-  it('should handle a fatal error', function () {
+  it('should handle a fatal error', function() {
     // Run with the fake data
     Meteor.call('/emissary/twilio/webhook', {
       MessageSid: '1234-ASDF',
@@ -73,14 +75,14 @@ describe('Twilio callback endpoint', function () {
     expect(job._job._doc.status).toEqual('failed');
   });
 
-  it('should handle a success', function () {
+  it('should handle a success', function() {
     // Run with the fake data
     Meteor.call('/emissary/twilio/webhook', {
       MessageSid: '1234-ASDF',
       MessageStatus: 'delivered'
     });
 
-    // 1) Make sure there's no entry in ConfigurationErrors for this entity 
+    // 1) Make sure there's no entry in ConfigurationErrors for this entity
     expect(turnOffs.length).toEqual(0);
 
     // 2) Make sure the job completed

@@ -1,31 +1,31 @@
 /* global require:false */
 // Mock meteor stuff available in the package file...(kinda hacky)
 global.Package = {
-  describe: function (description) {
+  describe: function(description) {
     this.description = description;
   },
-  onUse: function () {
+  onUse: function() {
     return;
   },
-  onTest: function () {
+  onTest: function() {
     return;
   }
 };
 
 global.api = {
-  use: function () {
+  use: function() {
     return;
   },
-  addFiles: function () {
+  addFiles: function() {
     return;
   },
-  export: function () {
+  export: function() {
     return;
   }
 };
 
 global.Npm = {
-  depends: function () {
+  depends: function() {
     return;
   }
 };
@@ -44,32 +44,32 @@ var major = parseInt(parts[0]),
   patch = parseInt(parts[2]);
 
 switch (process.argv[2]) {
-case 'major':
-  major++;
-  minor = 0;
-  patch = 0;
-  break;
-case 'minor':
-  minor++;
-  patch = 0;
-  break;
-default:
-  patch++;
-  break;
+  case 'major':
+    major++;
+    minor = 0;
+    patch = 0;
+    break;
+  case 'minor':
+    minor++;
+    patch = 0;
+    break;
+  default:
+    patch++;
+    break;
 }
 
 var newVersion = major.toString() + '.' + minor.toString() + '.' + patch.toString();
 console.log(newVersion);
 
 // Replace versions with new ones
-var packagesToReplace = ['mandrill', 'router', 'twilio', 'webhook'];
+var packagesToReplace = ['mandrill', 'router', 'twilio', 'webhook', 'push'];
 
 var fs = require('fs');
 
 fs.writeFileSync('packages/emissary/package.js', fs.readFileSync('packages/emissary/package.js').toString().replace(
   "version: '" + version + "'", "version: '" + newVersion + "'"));
 
-packagesToReplace.forEach(function (pkg) {
+packagesToReplace.forEach(function(pkg) {
   fs.writeFileSync('packages/' + pkg + '/package.js', fs.readFileSync('packages/' + pkg + '/package.js').toString()
     .replace(new RegExp(escapeRegExp('dispatch:emissary@' + version), 'g'), 'dispatch:emissary@' +
       newVersion).replace("version: '" + version + "'", "version: '" + newVersion + "'"));

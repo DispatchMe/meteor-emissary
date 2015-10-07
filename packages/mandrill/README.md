@@ -31,7 +31,7 @@ var transport = new MandrillTransport({
 transport.register();
 ```
 
-The above will create a new Mandrill transport and register it to work `"email"` messages in the Emissary job queue. 
+The above will create a new Mandrill transport and register it to work `"email"` messages in the Emissary job queue.
 
 ### Queueing Messages
 The body template functions a bit different than other transports. Mandrill let's you define templates in their interface, so instead of being the raw Handlebars template, `bodyTemplate` in this case is the name of the template in Mandrill.
@@ -43,6 +43,8 @@ Emissary.queueTask('email', {
   bodyTemplate:'<Mandrill template name>',
   subjectTemplate:'<subject handlebars template>',
   templateData:{},
-  to:'person@email.com'
+  transportConfig:{
+    to:'person@email.com'
+  }
 })
 ```

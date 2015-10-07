@@ -31,7 +31,7 @@ var transport = new TwilioTransport({
 transport.register();
 ```
 
-The above will create a new Twilio transport and register it to work `"sms"` messages in the Emissary job queue. 
+The above will create a new Twilio transport and register it to work `"sms"` messages in the Emissary job queue.
 
 ### Setting up the Webhook
 Twilio's API is asynchronous, so you don't know the status of the SMS right away. Instead, Twilio can hit a predefined URL via a webhook when the message status changes. This functionality is built into this package - all you have to do is turn on webhooks on a public-facing server after registering your transport:
@@ -45,7 +45,9 @@ Emissary.enableWebhooks();
 Emissary.queueTask('sms', {
   bodyTemplate:'<Handlebars template>',
   templateData:{},
-  to:'+15555555555'
+  transportConfig:{
+    to:'+15555555555',
+    from:'<optionally specify a different number here than the one you initialized with>'
+  }
 })
 ```
-

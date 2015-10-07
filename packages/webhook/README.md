@@ -35,7 +35,7 @@ The HTTP request configuration is defined when you run `Emissary.queueTask`.
 Emissary.queueTask('webhook', {
   bodyTemplate:'<arbitrary handlebars template for request body>',
   templateData:{<data to fill in bodyTemplate with>},
-  to:{
+  transportConfig:{
     headers:{
       'Content-Type':'text/plain',
       'Some Other Header':'some value'

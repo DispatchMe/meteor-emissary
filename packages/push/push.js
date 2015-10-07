@@ -33,16 +33,16 @@ class Transport {
       title: messageTitle,
       text: messageBody,
       query: {
-        userId: data.to.userId
+        userId: data.transportConfig.userId
       }
     };
 
-    if (data.to.payload) {
-      params.payload = data.to.payload;
+    if (data.transportConfig.payload) {
+      params.payload = data.transportConfig.payload;
     }
 
-    if (data.to.badge) {
-      params.badge = data.to.badge;
+    if (data.transportConfig.badge) {
+      params.badge = data.transportConfig.badge;
     }
 
     try {

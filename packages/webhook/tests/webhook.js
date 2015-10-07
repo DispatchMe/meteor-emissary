@@ -1,7 +1,7 @@
 /* global WebhookTransport:false */
 /* global Emissary:false - from dispatch:emissary */
 
-describe('webhook', function () {
+describe('webhook', function() {
   var params = [{
     response: {
       statusCode: 200
@@ -13,7 +13,7 @@ describe('webhook', function () {
       templateData: {
         foo: 'bar'
       },
-      to: {
+      transportConfig: {
         headers: {
           'Content-Type': 'application/json'
         },
@@ -33,7 +33,7 @@ describe('webhook', function () {
       templateData: {
         foo: 'bar'
       },
-      to: {
+      transportConfig: {
         headers: {
           'Content-Type': 'application/json'
         },
@@ -46,17 +46,17 @@ describe('webhook', function () {
 
   var transport = new WebhookTransport();
 
-  params.forEach(function (param, idx) {
-    it('should work with param #' + idx.toString(), function () {
+  params.forEach(function(param, idx) {
+    it('should work with param #' + idx.toString(), function() {
       spyOn(HTTP, 'call').and.returnValue(param.response);
 
       var jobSpy = jasmine.createSpyObj('job', ['log', 'done', 'getMessage']);
       jobSpy.getMessage.and.returnValue(param.jobData);
 
       transport.send(jobSpy);
-      expect(HTTP.call).toHaveBeenCalledWith(param.jobData.to.method, param.jobData.to.url, {
+      expect(HTTP.call).toHaveBeenCalledWith(param.jobData.transportConfig.method, param.jobData.transportConfig.url, {
         content: param.expectBody,
-        headers: param.jobData.to.headers,
+        headers: param.jobData.transportConfig.headers,
         timeout: 30000
       });
 
