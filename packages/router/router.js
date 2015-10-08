@@ -57,7 +57,8 @@ EmissaryRouter.init = function(config) {
     retrieveEntities: Function,
     generateTemplateData: Function,
     transformJob: Match.Optional(Function),
-    skipFilter: Match.Optional(Function)
+    skipFilter: Match.Optional(Function),
+    transformMessage: Match.Optional(Function)
   });
 
   if (!config.prefix) {

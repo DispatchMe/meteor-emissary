@@ -11,11 +11,11 @@ Package.onUse(function(api) {
     'http@1.1.0',
     'underscore@1.0.3',
     'check@1.0.5',
-    'ecmascript',
+    'ecmascript@0.1.4',
 
     // Atmosphere
     'dispatch:emissary@0.6.0',
-    'raix:push@3.0.0'
+    'raix:push@3.0.1'
 
   ], 'server');
 
@@ -27,13 +27,13 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function(api) {
-  api.use('sanjo:jasmine@0.19.0', ['client', 'server']);
+  api.use('sanjo:jasmine@0.20.1', ['client', 'server']);
   api.use([
     'http',
     'dispatch:emissary-transport-raix-push',
     'dispatch:emissary@0.6.0',
     'ecmascript',
-    'raix:push@3.0.0'
+    'raix:push@3.0.1'
   ], 'server');
 
   api.addFiles([

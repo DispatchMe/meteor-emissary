@@ -26,3 +26,4 @@ cd packages/mandrill && meteor publish && cd ../../
 cd packages/router && meteor publish && cd ../../
 cd packages/twilio && meteor publish && cd ../../
 cd packages/webhook && meteor publish && cd ../../
+cd packages/push && meteor publish && cd ../../

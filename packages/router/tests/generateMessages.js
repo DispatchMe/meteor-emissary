@@ -195,7 +195,11 @@ describe('generateMessages', function() {
       transportConfig: 'type1value',
       recipient: ['foo', '1'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: {
+          type1value: 'type1value',
+          type2value: 'type2value'
+        }
       }
     });
 
@@ -208,7 +212,11 @@ describe('generateMessages', function() {
       transportConfig: 'type2value',
       recipient: ['foo', '1'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: {
+          type1value: 'type1value',
+          type2value: 'type2value'
+        }
       }
     });
 
@@ -221,7 +229,8 @@ describe('generateMessages', function() {
       transportConfig: 'type3to #3',
       recipient: ['foo', '3'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: jasmine.any(Object)
       }
     });
   });
@@ -243,7 +252,8 @@ describe('generateMessages', function() {
       transportConfig: 'type1value',
       recipient: ['foo', '1'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: jasmine.any(Object)
       }
     });
 
@@ -256,7 +266,8 @@ describe('generateMessages', function() {
       transportConfig: 'type3to',
       recipient: ['foo', '2'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: jasmine.any(Object)
       }
     });
   });
@@ -284,7 +295,8 @@ describe('generateMessages', function() {
       },
       recipient: ['foo', '2'],
       templateData: {
-        foo: 'bar'
+        foo: 'bar',
+        recipient: jasmine.any(Object)
       }
     });
   });

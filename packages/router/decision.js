@@ -49,9 +49,18 @@ EmissaryRouter._generateMessages = function(recipients, eventName, eventData) {
       entities[recipients[idx][0] + '_' + recipients[idx][1]] || null, conf, eventName, eventData, templateData));
   });
 
-  // Add the template data to each message
-  messages.forEach(function(msg) {
-    msg.templateData = templateData;
+  // Add the template data to each message. Allow for custom template data per recipient as well so you can say
+  // their name and stuff
+  messages = messages.map(function(msg) {
+    // We want to keep the template data that may already be on the msg
+    msg.templateData = _.extend({}, templateData, msg.templateData || {});
+
+    // And finally run the full message through the transformer, in case you want to maybe dynamically generate
+    // some template data based on other data, stuff like that.
+    if (_.isFunction(EmissaryRouter._config.transformMessage)) {
+      msg = EmissaryRouter._config.transformMessage(msg, eventName, eventData);
+    }
+    return msg;
   });
 
   Emissary.log('Got %d messages for event %s', messages.length, eventName);
@@ -59,17 +68,27 @@ EmissaryRouter._generateMessages = function(recipients, eventName, eventData) {
   return messages;
 };
 
-function getMessagesForRecipient(recipientInfo, recipient, recipientConfig, eventName, eventData) {
+/**
+ * Return messages to send to a particular recipient
+ * @param  {Array} recipientIdentifier   Tuple <entity_type, entity_id>
+ * @param  {Object} recipient       The recipient data returned by the `retrieveEntities` function
+ * @param  {Object} recipientConfig Configuration settings for this recipient
+ * @param  {String} eventName
+ * @param  {String} eventData
+ * @return {Array}                 List of messages to send
+ */
+function getMessagesForRecipient(recipientIdentifier, recipient, recipientConfig, eventName, eventData) {
   if (!recipient) {
-    console.warn('Could not find recipient with info %s:%s', recipientInfo[0], recipientInfo[1]);
+    console.warn('Could not find recipient with info %s:%s', recipientIdentifier[0], recipientIdentifier[1]);
   }
 
-  var messages = getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig, eventName, eventData);
+  var messages = getNotificationMessagesForRecipient(recipient, recipientIdentifier,
+    recipientConfig, eventName, eventData);
 
   // Attach the original recipient info to each message if we need to adjust configuration in the workers (for
   // example, if an email hard-bounces and we need to turn it off)
   messages.forEach(function(msg) {
-    msg.recipient = recipientInfo;
+    msg.recipient = recipientIdentifier;
   });
 
   return messages;
@@ -99,6 +118,7 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
   var messageTypeConfig = _.findWhere(EmissaryRouter._config.notificationTypes, {
     type: type
   });
+
   if (!messageTypeConfig) {
     throw new Emissary.Error('No notification type registered for "%s"', type);
   }
@@ -142,12 +162,12 @@ function getInterpretedConfigForEvent(conf, eventName) {
  * for the given event
  *
  * @param  {Object} recipient   The recipient, retrieved using retrieveEntities()
- * @param {Array} recipientInfo The tuple for interaction with dispatch:configuration [entity_type, entity_id]
+ * @param {Array} recipientIdentifier The tuple for interaction with dispatch:configuration [entity_type, entity_id]
  * @param  {Object} recipientConfig               Inherited(?) configuration
  * @param  {String} eventName                     The name of the event
  * @return {Array<String>}                        List of notification types, e.g ["push", "sms"]
  */
-function getNotificationMessagesForRecipient(recipient, recipientInfo, recipientConfig,
+function getNotificationMessagesForRecipient(recipient, recipientIdentifier, recipientConfig,
   eventName, eventData, templateData) {
 
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
@@ -158,8 +178,8 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
   var checkFunction;
 
   var typesWithConfigurationErrors = _.pluck(EmissaryRouter.ConfigurationErrors.collection.find({
-    entityType: recipientInfo[0],
-    entityId: recipientInfo[1],
+    entityType: recipientIdentifier[0],
+    entityId: recipientIdentifier[1],
     status: 'unresolved'
   }, {
     fields: {
@@ -171,7 +191,8 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
   // Allow users to define their own logic for skipping certain notification types
   // based on certain conditions
   if (_.isFunction(EmissaryRouter._config.skipFilter)) {
-    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientInfo, recipientConfig, eventName) || [];
+    skipMessageTypes = EmissaryRouter._config.skipFilter(recipient, recipientIdentifier,
+        recipientConfig, eventName) || [];
   }
 
   // Check notifications errors - if there are any unresolved errors for this entity, we can't send them that
@@ -282,7 +303,7 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
         if (!checkFunction) {
           throw new Emissary.Error('Check function is not defined for notification type %s', preferenceType);
         }
-        if (checkFunction(recipient, recipientInfo, recipientConfig, eventName) === true) {
+        if (checkFunction(recipient, recipientIdentifier, recipientConfig, eventName) === true) {
 
           // We should send the message. Now generate the messages for each type and add them to the messages array
           for (var n = 0; n < notificationTypesByPreference[preferenceType].length; n++) {
@@ -299,6 +320,13 @@ function getNotificationMessagesForRecipient(recipient, recipientInfo, recipient
       }
     }
   }
+
+  // Now, attach the recipient to the template data
+  messages.forEach(function(msg) {
+    msg.templateData = {
+      recipient: recipient
+    };
+  });
 
   return messages;
 }

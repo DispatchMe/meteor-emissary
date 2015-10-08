@@ -21,8 +21,8 @@ deps@1.0.9
 diff-sequence@1.0.1
 dispatch:bound-document@0.0.2
 dispatch:configuration@0.1.0
-dispatch:emissary@0.5.1
-dispatch:emissary-router@0.5.1
+dispatch:emissary@0.6.0
+dispatch:emissary-router@0.6.0
 ecmascript@0.1.5
 ecmascript-collections@0.1.6
 ejson@1.0.7
@@ -33,7 +33,7 @@ htmljs@1.0.5
 id-map@1.0.4
 jquery@1.11.4
 livedata@1.0.15
-local-test:dispatch:emissary-router@0.5.1
+local-test:dispatch:emissary-router@0.6.0
 logging@1.0.8
 meteor@1.1.9
 minifiers@1.1.7
