@@ -31,7 +31,7 @@ Package.onUse(function(api) {
     'decision.js'
   ], 'server');
 
-  api.export(['EmissaryRouter'], 'server');
+  api.export(['EmissaryRouter'], ['client', 'server']);
 });
 
 Npm.depends({

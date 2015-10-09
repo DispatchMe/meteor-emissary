@@ -41,7 +41,8 @@ EmissaryRouter = {};
  *                                only attempted to be sent to some type of user.
  */
 EmissaryRouter.init = function(config) {
-  check(config, {
+  // You need different stuff depending if you're on the client or the server
+  var checkSchema = {
     events: [String],
     notificationTypes: [{
       type: String,
@@ -53,13 +54,19 @@ EmissaryRouter.init = function(config) {
       check: Function
     }],
     prefix: Match.Optional(String),
-    getPotentialRecipientsForEvent: Function,
-    retrieveEntities: Function,
-    generateTemplateData: Function,
-    transformJob: Match.Optional(Function),
-    skipFilter: Match.Optional(Function),
-    transformMessage: Match.Optional(Function)
-  });
+  };
+
+  if (Meteor.isServer) {
+    checkSchema = _.extend(checkSchema, {
+      getPotentialRecipientsForEvent: Function,
+      retrieveEntities: Function,
+      generateTemplateData: Function,
+      transformJob: Match.Optional(Function),
+      skipFilter: Match.Optional(Function),
+      transformMessage: Match.Optional(Function)
+    });
+  }
+  check(config, checkSchema);
 
   if (!config.prefix) {
     config.prefix = 'notifications';
