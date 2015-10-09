@@ -14,12 +14,19 @@ Package.onUse(function(api) {
 
     // Atmosphere
     'dispatch:configuration@0.1.0',
-    'dispatch:emissary@0.7.0',
+
     'gfk:underscore-deep@1.0.0'
+  ], ['client', 'server']);
+
+  api.use([
+    'dispatch:emissary@0.7.0',
   ], 'server');
 
   api.addFiles([
-    'router.js',
+    'router.js'
+  ], ['client', 'server']);
+
+  api.addFiles([
     'errors.js',
     'decision.js'
   ], 'server');

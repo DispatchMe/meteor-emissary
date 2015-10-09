@@ -93,7 +93,7 @@ EmissaryRouter.init = function(config) {
       multi: true,
 
       // Here, if it's multi, config will be the relevant element of the array instead of the array
-      formatter: function(recipient, config, eventName) {
+      getConfig: function(recipient, config, eventName) {
         // If there's config for the particular event, use that. Otherwise use
         if (config.webhook[eventName].config) {
           return config.webhook[eventName].config;
@@ -108,67 +108,70 @@ EmissaryRouter.init = function(config) {
   this._defineSchema();
 };
 
-/**
- * Schema looks like this:
- * {
- *     sms:{
- *         when:{
- *             always:[...],
- *             work_hours:[...]
- *         },
- *         events:{
- *             jobCreated:{
- *                 timing:{
- *                     delay:0,
- *                     timeout:0
- *                 },
- *                 templates:{
- *                     body:'',
- *                     subject:''
- *                 },
- *                 config:{...}
- *             }
- *         },
- *         config{...}
- *     }
- * }
- *
- *
- * {
- *     type1:{
- *         when:{
- *             always:[],
- *             day:[],
- *             night:[]
- *         },
- *         events:{
- *             event1:[
- *
- *             ]
- *         }
- *     }
- *
- * }
- * @param  {String} eventName Event name
- * @param  {Object} eventData Arbitrary data to pass to the event handlers
- */
-EmissaryRouter.send = function(eventName, eventData) {
-  console.log('Router sending message');
-  var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
-  var transform = function(job, data) {
-    job.delay(data.delay);
 
-    if (_.isFunction(EmissaryRouter._config.transformJob)) {
-      job = EmissaryRouter._config.transformJob(job, data);
-    }
+if (Meteor.isServer) {
+  /**
+   * Schema looks like this:
+   * {
+   *     sms:{
+   *         when:{
+   *             always:[...],
+   *             work_hours:[...]
+   *         },
+   *         events:{
+   *             jobCreated:{
+   *                 timing:{
+   *                     delay:0,
+   *                     timeout:0
+   *                 },
+   *                 templates:{
+   *                     body:'',
+   *                     subject:''
+   *                 },
+   *                 config:{...}
+   *             }
+   *         },
+   *         config{...}
+   *     }
+   * }
+   *
+   *
+   * {
+   *     type1:{
+   *         when:{
+   *             always:[],
+   *             day:[],
+   *             night:[]
+   *         },
+   *         events:{
+   *             event1:[
+   *
+   *             ]
+   *         }
+   *     }
+   *
+   * }
+   * @param  {String} eventName Event name
+   * @param  {Object} eventData Arbitrary data to pass to the event handlers
+   */
+  EmissaryRouter.send = function(eventName, eventData) {
+    console.log('Router sending message');
+    var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
+    var transform = function(job, data) {
+      job.delay(data.delay);
 
-    return job;
+      if (_.isFunction(EmissaryRouter._config.transformJob)) {
+        job = EmissaryRouter._config.transformJob(job, data);
+      }
+
+      return job;
+    };
+
+    messages.forEach(function(msg) {
+      Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
+    });
   };
-
-  messages.forEach(function(msg) {
-    Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
-  });
-};
+}
 
 EmissaryRouter._defineSchema = function() {
   var receivePreferenceOptions = _.pluck(this._config.receivePreferences, 'type');
