@@ -53,6 +53,7 @@ TwilioTransport.prototype.authenticateWebhook = function(req, res, next) {
   if (twilio.validateRequest(this._config.token, header, fullUrl, params)) {
     next();
   } else {
+    console.log('Failed to validate request:', this._config.token, header, fullUrl, params);
     next(new Meteor.Error('Invalid status code'));
   }
 };
@@ -142,6 +143,8 @@ TwilioTransport.prototype.send = function(job) {
     if (data.transportConfig.from) {
       options.from = data.transportConfig.from;
     }
+
+    job.log('info', 'Sending data to Twilio', options);
 
     var response = this._client.sendSMS(options);
 

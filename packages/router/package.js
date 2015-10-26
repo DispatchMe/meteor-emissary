@@ -13,7 +13,7 @@ Package.onUse(function(api) {
     'check@1.0.5',
 
     // Atmosphere
-    'dispatch:configuration@0.1.0',
+    'dispatch:configuration@0.1.6',
 
     'gfk:underscore-deep@1.0.0'
   ], ['client', 'server']);

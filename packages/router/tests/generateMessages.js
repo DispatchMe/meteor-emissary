@@ -77,11 +77,9 @@ describe('generateMessages', function() {
     Configuration.setForEntity('foo', '1', {
       emissary: {
         type1: {
-          when: {
-            always: ['event1']
-          },
           events: {
             event1: {
+              when:'always',
               templates: {
                 body: 'Type 1 template',
                 subject: 'Type 1 subject'
@@ -90,11 +88,9 @@ describe('generateMessages', function() {
           }
         },
         type2: {
-          when: {
-            day: ['event1']
-          },
           events: {
             event1: {
+              when:'day',
               templates: {
                 body: 'Type 2 template',
                 subject: 'Type 2 subject'
@@ -108,11 +104,9 @@ describe('generateMessages', function() {
     Configuration.setForEntity('foo', '2', {
       emissary: {
         type3: [{
-          when: {
-            night: ['event1']
-          },
           events: {
             event1: {
+              when:'night',
               templates: {
                 body: 'Type 3 template',
                 subject: 'Type 3 subject'
@@ -123,11 +117,9 @@ describe('generateMessages', function() {
             }
           }
         }, {
-          when: {
-            always: ['event2']
-          },
           events: {
             event2: {
+              when:'always',
               templates: {
                 body: '',
                 subject: ''
@@ -152,11 +144,9 @@ describe('generateMessages', function() {
     Configuration.setForEntity('foo', '3', {
       emissary: {
         type3: [{
-          when: {
-            day: ['event1']
-          },
           events: {
             event1: {
+              when:'day',
               templates: {
                 body: 'Type 3 template #3',
                 subject: 'Type 3 subject #3'

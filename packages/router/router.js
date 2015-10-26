@@ -162,7 +162,6 @@ if (Meteor.isServer) {
    * @param  {Object} eventData Arbitrary data to pass to the event handlers
    */
   EmissaryRouter.send = function(eventName, eventData) {
-    console.log('Router sending message');
     var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
     var transform = function(job, data) {
       job.delay(data.delay);
@@ -175,7 +174,10 @@ if (Meteor.isServer) {
     };
 
     messages.forEach(function(msg) {
+      Emissary.log('Sending message:', msg.type, 'to', msg.transportConfig);
+
       Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
+      
     });
   };
 }
@@ -197,23 +199,6 @@ EmissaryRouter._defineSchema = function() {
       defaults[type.type] = {};
       schemaPrefix = type.type;
     }
-
-    // "When" - receive preferences like "always" and "night"
-    schema[schemaPrefix + '.when'] = {
-      type: Object
-    };
-    if (type.multi !== true)
-      defaults[type.type].when = {};
-
-    receivePreferenceOptions.forEach(function(opt) {
-      if (type.multi !== true)
-        defaults[type.type].when[opt] = [];
-
-      schema[schemaPrefix + '.when.' + opt] = {
-        type: [String],
-        allowedValues: events
-      };
-    });
 
     schema[schemaPrefix + '.events'] = {
       type: Object
@@ -237,6 +222,12 @@ EmissaryRouter._defineSchema = function() {
             subject: ''
           }
         };
+
+      // Receive preference...
+      schema[schemaPrefix + '.events.' + evt + '.when'] = {
+        type: String,
+        allowedValues: receivePreferenceOptions
+      };
 
       // Timing...
       schema[schemaPrefix + '.events.' + evt + '.timing'] = {

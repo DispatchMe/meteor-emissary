@@ -19,6 +19,7 @@ var rootUrl = null;
  *                              and `connect` argument, and then you can run `connect.use(path, connectMiddleware)`.
  */
 Emissary.registerWebhookEndpoint = function (method, uri, callback, parser, middleware) {
+  console.log('Registering webhook endpoint');
   if (uri.substr(0, 1) !== '/') {
     throw new Emissary.Error('Webhook URI must begin with a forward slash');
   }

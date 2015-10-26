@@ -1,6 +1,7 @@
 /* global Push:false - from raix:push */
 /* global Emissary:false - from dispatch:emissary */
 /* global PushTransport:true */
+Push.debug = true;
 class Transport {
   constructor(config) {
     check(config, {
@@ -24,6 +25,7 @@ class Transport {
   }
 
   send(job) {
+    console.log('SENDING PUSH!!!');
     const data = job.getMessage();
     const messageBody = Emissary.renderTemplate(data.bodyTemplate, data.templateData || {});
     const messageTitle = Emissary.renderTemplate(data.subjectTemplate, data.templateData || {});

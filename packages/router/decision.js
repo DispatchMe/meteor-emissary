@@ -77,19 +77,20 @@ EmissaryRouter._generateMessages = function(recipients, eventName, eventData) {
  * @param  {String} eventData
  * @return {Array}                 List of messages to send
  */
-function getMessagesForRecipient(recipientIdentifier, recipient, recipientConfig, eventName, eventData) {
+function getMessagesForRecipient(recipientIdentifier, recipient, recipientConfig, eventName, eventData, templateData) {
   if (!recipient) {
     console.warn('Could not find recipient with info %s:%s', recipientIdentifier[0], recipientIdentifier[1]);
   }
 
   var messages = getNotificationMessagesForRecipient(recipient, recipientIdentifier,
-    recipientConfig, eventName, eventData);
+    recipientConfig, eventName, eventData, templateData);
 
   // Attach the original recipient info to each message if we need to adjust configuration in the workers (for
   // example, if an email hard-bounces and we need to turn it off)
   messages.forEach(function(msg) {
     msg.recipient = recipientIdentifier;
   });
+
 
   return messages;
 }
@@ -115,6 +116,7 @@ function getMessagesForRecipient(recipientIdentifier, recipient, recipientConfig
  * @return {Object}                 Message to send
  */
 function generateMessageForType(type, recipient, recipientConfig, eventName, eventData, templateData) {
+
   var messageTypeConfig = _.findWhere(EmissaryRouter._config.notificationTypes, {
     type: type
   });
@@ -131,9 +133,9 @@ function generateMessageForType(type, recipient, recipientConfig, eventName, eve
   return {
     type: type,
     subjectTemplate: recipientConfig.templates.subject || '',
-    bodyTemplate: recipientConfig.templates.body,
-    delay: recipientConfig.timing.delay,
-    timeout: recipientConfig.timing.timeout,
+    bodyTemplate: recipientConfig.templates.body || '',
+    delay: recipientConfig.timing ? recipientConfig.timing.delay : 0,
+    timeout: recipientConfig.timing ? recipientConfig.timing.timeout : 0,
     transportConfig: getConfig(recipient, recipientConfig.config, eventName, eventData, templateData)
   };
 }
@@ -173,7 +175,6 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
   var notificationTypeConfig;
   var preferenceType;
-  var eventsList;
   var conf;
   var checkFunction;
 
@@ -199,26 +200,8 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
   // type of notification.
   skipMessageTypes = skipMessageTypes.concat(typesWithConfigurationErrors);
 
-  function checkWhenAgainstEvent(when, notificationTypesByPreference) {
-    for (var preferenceType in when) {
-      if (!when.hasOwnProperty(preferenceType)) {
-        continue;
-      }
-
-      eventsList = when[preferenceType];
-
-      if (eventsList.indexOf(eventName) >= 0) {
-        if (!notificationTypesByPreference[preferenceType]) {
-          notificationTypesByPreference[preferenceType] = [];
-        }
-        return preferenceType;
-      }
-    }
-    return null;
-  }
-
   var messages = [];
-
+  var when;
   for (var notificationType in notificationTypeConfigs) {
     if (!notificationTypeConfigs.hasOwnProperty(notificationType)) {
       continue;
@@ -233,10 +216,13 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
       for (var i = 0; i < notificationTypeConfig.length; i++) {
         conf = notificationTypeConfig[i];
 
-        preferenceType = checkWhenAgainstEvent(conf.when, notificationTypesByPreference);
-        if (preferenceType) {
 
-          notificationTypesByPreference[preferenceType].push({
+        when = conf.events[eventName] ? conf.events[eventName].when : null;
+        if(when) {
+          if(!notificationTypesByPreference[when]) {
+            notificationTypesByPreference[when] = [];
+          }
+          notificationTypesByPreference[when].push({
             type: notificationType,
             index: i,
             config: getInterpretedConfigForEvent(conf, eventName)
@@ -244,9 +230,12 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
         }
       }
     } else {
-      preferenceType = checkWhenAgainstEvent(notificationTypeConfig.when, notificationTypesByPreference);
-      if (preferenceType) {
-        notificationTypesByPreference[preferenceType].push({
+      when = notificationTypeConfig.events[eventName] ? notificationTypeConfig.events[eventName].when : null;
+      if(when) {
+        if(!notificationTypesByPreference[when]) {
+          notificationTypesByPreference[when] = [];
+        }
+        notificationTypesByPreference[when].push({
           type: notificationType,
           config: getInterpretedConfigForEvent(notificationTypeConfig, eventName),
 
@@ -327,6 +316,7 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
       recipient: recipient
     };
   });
+
 
   return messages;
 }

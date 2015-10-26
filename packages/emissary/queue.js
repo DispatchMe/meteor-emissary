@@ -259,19 +259,26 @@ Emissary.queueTask = function(taskName, data, transform) {
   // "Cancel If" logic will go here when we want to add it
   Emissary.log('Queuing task: ' + taskName);
 
-  check(data, {
-    bodyTemplate: String,
-    timeout: Match.Optional(Number),
-    delay: Match.Optional(Number),
-    subjectTemplate: Match.Optional(String),
-    templateData: Match.Optional(Object),
+  try {
+    check(data, {
+      bodyTemplate: String,
+      timeout: Match.Optional(Number),
+      delay: Match.Optional(Number),
+      subjectTemplate: Match.Optional(String),
+      templateData: Match.Optional(Object),
 
-    // Format depends on the transport
-    transportConfig: Emissary._types[taskName],
+      // Format depends on the transport
+      transportConfig: Emissary._types[taskName],
 
-    // Put any additional data here
-    recipient: Match.Optional(Match.Any)
-  });
+      // Put any additional data here
+      recipient: Match.Optional(Match.Any)
+    });
+
+  } catch (err) {
+    Emissary.emit('error', err);
+    console.warn('Invalid Emissary message format!');
+    throw err;
+  }
 
   var job = new Job(queue, taskName, data);
 

@@ -6,6 +6,8 @@ Emissary = new EventEmitter();
 
 Emissary._types = {};
 
+Emissary.debug = false;
+
 Emissary.registerType = function(type, schema) {
   if (Emissary._types.hasOwnProperty(type)) {
     console.warn('Warning: overriding predefined Emissary type %s', type);
@@ -21,8 +23,10 @@ Emissary.registerType('email', {
 });
 
 // The "to" property is just the phone number
+console.log('Doing it here');
 Emissary.registerType('sms', {
-  to: String
+  to: String,
+  from: Match.Optional(String)
 });
 
 // The "to" property has all of the following info:
