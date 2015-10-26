@@ -23,7 +23,6 @@ Emissary.registerType('email', {
 });
 
 // The "to" property is just the phone number
-console.log('Doing it here');
 Emissary.registerType('sms', {
   to: String,
   from: Match.Optional(String)
