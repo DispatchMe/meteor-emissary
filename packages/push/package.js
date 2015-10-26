@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary-transport-raix-push',
   summary: 'Push transport for emissary using raix:push',
-  version: '0.8.1'
+  version: '0.9.0'
 });
 
 Package.onUse(function(api) {
@@ -14,7 +14,7 @@ Package.onUse(function(api) {
     'ecmascript@0.1.4',
 
     // Atmosphere
-    'dispatch:emissary@0.8.1',
+    'dispatch:emissary@0.9.0',
     'raix:push@3.0.1'
 
   ], 'server');
@@ -31,7 +31,7 @@ Package.onTest(function(api) {
   api.use([
     'http',
     'dispatch:emissary-transport-raix-push',
-    'dispatch:emissary@0.8.1',
+    'dispatch:emissary@0.9.0',
     'ecmascript',
     'raix:push@3.0.1'
   ], 'server');
