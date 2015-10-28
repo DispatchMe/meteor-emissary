@@ -43,8 +43,14 @@ EmissaryRouter._generateMessages = function(recipients, eventName, eventData) {
    * @type {[type]}
    */
   var entities = retrieveEntities(recipients);
-
+  var entity;
+  var entityID;
   bulkConfig.forEach(function(conf, idx) {
+    entityID = recipients[idx][0] + '_' + recipients[idx][1];
+    entity = entities[entityID];
+    if(!entity) {
+      throw new Emissary.Error('Entity ID %s not found', entityID);
+    }
     messages = messages.concat(getMessagesForRecipient(recipients[idx],
       entities[recipients[idx][0] + '_' + recipients[idx][1]] || null, conf, eventName, eventData, templateData));
   });
@@ -171,6 +177,7 @@ function getInterpretedConfigForEvent(conf, eventName) {
  */
 function getNotificationMessagesForRecipient(recipient, recipientIdentifier, recipientConfig,
   eventName, eventData, templateData) {
+  console.log('Getting notifications for recipient:', recipientIdentifier);
 
   var notificationTypeConfigs = recipientConfig[EmissaryRouter._config.prefix];
   var notificationTypeConfig;
@@ -301,8 +308,12 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
             typeIndex = typeConfig.index;
 
             if (!_.contains(skipMessageTypes, typeName)) {
-              messages.push(generateMessageForType(typeName, recipient, typeConfig.config,
+              try {
+                messages.push(generateMessageForType(typeName, recipient, typeConfig.config,
                 eventName, eventData, templateData));
+              } catch(err) {
+                Emissary.log('Error generating message: ', err.message);
+              }     
             }
           }
         }
