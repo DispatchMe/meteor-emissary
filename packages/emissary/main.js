@@ -1,8 +1,4 @@
 /* global Emissary:true */
-var EventEmitter = Npm.require('events').EventEmitter;
-
-// Emissary is an event emitter, so we can emit events from it
-Emissary = new EventEmitter();
 
 Emissary._types = {};
 

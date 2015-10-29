@@ -16,8 +16,12 @@ Package.onUse(function (api) {
     'vsivsi:job-collection@1.2.2',
     'simple:json-routes@1.0.3',
     'simple:rest@0.2.3'
-  ], 'server');
+  ], ['client', 'server']);
 
+  api.addFiles([
+    'namespace.js',
+    'collection.js'
+  ], ['client', 'server']);
   api.addFiles([
     'main.js',
     'errors.js',
@@ -26,7 +30,7 @@ Package.onUse(function (api) {
     'template.js'
   ], 'server');
 
-  api.export(['Emissary'], 'server');
+  api.export(['Emissary'], ['client', 'server']);
   api.export(['EmissaryJob', 'EmissaryTest'], 'server', {
     testOnly: true
   });

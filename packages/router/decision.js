@@ -209,6 +209,7 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
 
   var messages = [];
   var when;
+
   for (var notificationType in notificationTypeConfigs) {
     if (!notificationTypeConfigs.hasOwnProperty(notificationType)) {
       continue;
@@ -286,6 +287,7 @@ function getNotificationMessagesForRecipient(recipient, recipientIdentifier, rec
     var typeName;
     var typeIndex;
 
+    console.log(notificationTypesByPreference);
     for (preferenceType in notificationTypesByPreference) {
       if (notificationTypesByPreference.hasOwnProperty(preferenceType)) {
         receivePreference = _.findWhere(EmissaryRouter._config.receivePreferences, {
