@@ -87,7 +87,6 @@ TwilioTransport.prototype.emitStatusEvent = function (data, response) {
 };
 
 TwilioTransport.prototype.send = function (job) {
-  return;
   var data = job.info.data.payload;
 
   var body = Emissary.renderTemplate(data.bodyTemplate, data.templateData || {});

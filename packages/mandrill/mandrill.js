@@ -19,7 +19,6 @@ MandrillTransport.prototype.register = function () {
 };
 
 MandrillTransport.prototype.send = function (job) {
-  return;
   // Send it via the send-template API endpoint. Assume the bodyTemplate is the template name,
   // and then convert the templateData to dot-notation for use in the template
   var request = this.generateRequest(job.info.data.payload);
