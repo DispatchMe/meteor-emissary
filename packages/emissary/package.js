@@ -1,7 +1,7 @@
 Package.describe({
   name: 'dispatch:emissary',
   summary: 'Extensible/configurable notifications package',
-  version: '0.10.0'
+  version: '0.11.0'
 });
 
 Package.onUse(function (api) {
@@ -11,7 +11,7 @@ Package.onUse(function (api) {
     'mongo@1.1.0',
     'underscore@1.0.3',
     'check@1.0.5',
-    'ecmascript',
+    'ecmascript@0.1.4',
 
     // Atmosphere
     'vsivsi:job-collection@1.2.2',
