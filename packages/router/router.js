@@ -40,7 +40,7 @@ EmissaryRouter = {};
  *                                recipient and event. For example, a failsafe to make sure that push notifications are
  *                                only attempted to be sent to some type of user.
  */
-EmissaryRouter.init = function(config) {
+EmissaryRouter.init = function (config) {
   // You need different stuff depending if you're on the client or the server
   var checkSchema = {
     events: [String],
@@ -76,21 +76,21 @@ EmissaryRouter.init = function(config) {
     // Defaults
     config.notificationTypes = [{
       type: 'email',
-      getConfig: function(recipient) {
+      getConfig: function (recipient) {
         return {
           to: recipient.email
         };
       }
     }, {
       type: 'sms',
-      getConfig: function(recipient) {
+      getConfig: function (recipient) {
         return {
           to: recipient.phoneNumber
         };
       }
     }, {
       type: 'push',
-      getConfig: function(recipient) {
+      getConfig: function (recipient) {
         return {
           to: recipient._id
         };
@@ -100,7 +100,7 @@ EmissaryRouter.init = function(config) {
       multi: true,
 
       // Here, if it's multi, config will be the relevant element of the array instead of the array
-      getConfig: function(recipient, config, eventName) {
+      getConfig: function (recipient, config, eventName) {
         // If there's config for the particular event, use that. Otherwise use
         if (config.webhook[eventName].config) {
           return config.webhook[eventName].config;
@@ -114,7 +114,6 @@ EmissaryRouter.init = function(config) {
 
   this._defineSchema();
 };
-
 
 if (Meteor.isServer) {
   /**
@@ -161,9 +160,9 @@ if (Meteor.isServer) {
    * @param  {String} eventName Event name
    * @param  {Object} eventData Arbitrary data to pass to the event handlers
    */
-  EmissaryRouter.send = function(eventName, eventData) {
+  EmissaryRouter.send = function (eventName, eventData) {
     var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
-    var transform = function(job, data) {
+    var transform = function (job, data) {
       job.delay(data.delay);
 
       if (_.isFunction(EmissaryRouter._config.transformJob)) {
@@ -173,16 +172,21 @@ if (Meteor.isServer) {
       return job;
     };
 
-    messages.forEach(function(msg) {
+    messages.forEach(function (msg) {
       Emissary.log('Sending message:', msg.type, 'to', msg.transportConfig);
 
-      Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform);
-      
+      Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform).then(function (response) {
+        console.log('SENT', response);
+      }).catch(function (err) {
+        console.log('FAILED');
+        console.log(err.stack);
+      });
+
     });
   };
 }
 
-EmissaryRouter._defineSchema = function() {
+EmissaryRouter._defineSchema = function () {
   var receivePreferenceOptions = _.pluck(this._config.receivePreferences, 'type');
   var prefix = this._config.prefix;
   var notificationTypes = this._config.notificationTypes;
@@ -190,7 +194,7 @@ EmissaryRouter._defineSchema = function() {
   var defaults = {};
   var schema = {};
 
-  notificationTypes.forEach(function(type) {
+  notificationTypes.forEach(function (type) {
     var schemaPrefix;
     if (type.multi === true) {
       defaults[type.type] = [];
@@ -206,7 +210,7 @@ EmissaryRouter._defineSchema = function() {
     if (type.multi !== true)
       defaults[type.type].events = {};
 
-    events.forEach(function(evt) {
+    events.forEach(function (evt) {
       schema[schemaPrefix + '.events.evt'] = {
         type: Object
       };

@@ -1,10 +1,28 @@
-/* global Job:false - from vsivsi:job-collection package */
 /* global Emissary:true */
-/* global EmissaryJob:true */
 /* global EmissaryTest:true*/
+/* jshint esnext:true */
 
+var queuepid = Npm.require('queuepid');
 
-var queue = Emissary.collections.jobs;
+var queueURL = (Meteor.settings.emissary && Meteor.settings.emissary.messagesQueue) ||
+  process.env.EMISSARY_MESSAGES_QUEUE;
+console.log('Creating with queue URL:', queueURL);
+var queue = new queuepid.Queue('notifications_messages', new queuepid.SQSDriver({
+  queueUrl: queueURL,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'us-east-1'
+}), {
+  mongoUrl: process.env.MONGO_URL,
+  retryLimit: 10
+});
+
+queue.connect().then(function () {
+  console.log('Connected to queue');
+}).catch(function (err) {
+  throw err;
+});
+
 var externalIds = Emissary.collections.externalIds;
 EmissaryTest = {
   queue: queue,
@@ -13,90 +31,37 @@ EmissaryTest = {
 /**
  * Start the workers to send notifications
  */
-Emissary.workQueue = function(checkInterval) {
-  checkInterval = checkInterval || 5000;
+Emissary.workQueue = function () {
+  Emissary.pool = new queuepid.WorkerPool(queue, {
+    maxConcurrent: Meteor.settings.emissary && Meteor.settings.emissary.concurrent || process.env.EMISSARY_CONCURRENT ||
+      10,
+    wait: 500
+  }, Meteor.bindEnvironment(function (job) {
+    console.log('Got job!', job.info);
+    let info = job.info;
 
-  queue.promote(checkInterval);
-  queue.startJobServer();
+    let worker = Emissary._workers[info.data.task];
+    if (!worker) {
+      job.done(new Error('No worker registered for ' + info.data.task));
+    } else {
+      try {
+        worker(job);
+      } catch (err) {
+        console.log('Failing here');
+        job.done(err);
+      }
+    }
+  }));
+
+  Emissary.pool.start();
+
 };
 
 /**
  * Stop the workers (stop sending notifications)
  */
-Emissary.stopWorkingQueue = function() {
+Emissary.stopWorkingQueue = function () {
   queue.shutdownJobServer();
-};
-
-/**
- * A wrapper for the vsivsi:job for additional functionality and alternate error
- * handling
- */
-EmissaryJob = function(job) {
-  this._job = job;
-};
-
-/**
- * Retrieve the message data passed to the job via queueTask
- * @return {Object) The data
- */
-EmissaryJob.prototype.getMessage = function() {
-  return this._job._doc.data;
-};
-
-/**
- * Return info about the job (type, retries, status, etc)
- * @return {Object} The info
- */
-EmissaryJob.prototype.getInfo = function() {
-  return this._job._doc;
-};
-
-/**
- * Finish a job. If the argument is empty, it will be finished successfully. Otherwise if `err` is defined, the job
- * will be failed. If err is an instance of EmissaryFatalError, the job will be failed fatally, meaning it will not
- * be retried.
- *
- * @param  {Error}   [err] Error, if the job failed
- */
-EmissaryJob.prototype.done = function(err) {
-  if (err) {
-    var failOptions = {};
-    if (err.name === 'EmissaryFatalError') {
-      failOptions.fatal = true;
-    }
-
-    this._job.fail(err.message, failOptions);
-  } else {
-    this._job.done();
-  }
-};
-
-/**
- * Log a message on the job.
- * @param  {String} level If this is the only argument, it will be used as the "message" argument. Otherwise this will
- *                        define the log level (e.g. "info" or "error")
- * @param  {String} [msg]   The message, if you want to also define the level
- * @param  {Object} [data]  Arbitrary data relevant to this message
- */
-EmissaryJob.prototype.log = function(level, msg, data) {
-  if (!msg) {
-    msg = level;
-    level = 'info';
-  }
-  data = data || {};
-  this._job.log(msg, {
-    level: level,
-    data: data
-  });
-};
-
-/**
- * Get the database ID of a job. This is used for continuing work on a job if it was deferred due to some waiting
- * period.
- * @return {String} The job ID
- */
-EmissaryJob.prototype.getId = function() {
-  return this._job._doc._id;
 };
 
 /**
@@ -117,7 +82,7 @@ EmissaryJob.prototype.getId = function() {
  *                                     recipient fixes it. This is simply passed through to the "turnOff" event
  * @return {[type]}          [description]
  */
-EmissaryJob.prototype.handleResponse = function(response) {
+Emissary.handleResponse = function (job, response) {
   check(response, {
     ok: Boolean,
     done: Boolean,
@@ -127,12 +92,12 @@ EmissaryJob.prototype.handleResponse = function(response) {
     resolution: Match.Optional(String)
   });
 
-  this.log('Current status: ' + response.status);
+  job.log('Current status: ' + response.status);
   if (response.ok) {
     if (response.done) {
-      return this.done();
+      return job.done();
     }
-  // Do nothing - need to wait for the next status
+    // Do nothing - need to wait for the next status
   } else {
     var turnOffNotifications = false;
     var errorConstructor = Emissary.Error;
@@ -142,12 +107,9 @@ EmissaryJob.prototype.handleResponse = function(response) {
       turnOffNotifications = true;
     }
 
-    // Call done with the error, which delegates to job.fail();
-    this.done(new errorConstructor(response.error));
-
     // If we need to turn off future notifications until it's resolved, do it now by adding a configuration error
     if (turnOffNotifications) {
-      this.turnOffFutureNotifications(response.error, response.resolution);
+      Emissary.turnOffFutureNotifications(job, response.error, response.resolution);
     }
 
     // If it's catastrophic, wake everyone up
@@ -155,6 +117,9 @@ EmissaryJob.prototype.handleResponse = function(response) {
       Emissary.emit('error.catastrophic', new Error('Catastrophic notifications ' + 'error: ' + response.message +
         '(JOB ID:' + this.getId() + ')'));
     }
+
+    // Call done with the error, which delegates to job.fail();
+    return job.done(new errorConstructor(response.error));
 
   }
 };
@@ -165,27 +130,11 @@ EmissaryJob.prototype.handleResponse = function(response) {
  * @param  {String} reason     The reason the notifications need to be turned off
  * @param  {String} resolution A potential solution to the above issue
  */
-EmissaryJob.prototype.turnOffFutureNotifications = function(reason, resolution) {
+Emissary.turnOffFutureNotifications = function (job, reason, resolution) {
   Emissary.emit('turnOff', {
-    job: this,
+    job: job,
     reason: reason,
     resolution: resolution
-  });
-};
-
-/**
- * Record a link between this job and some other ID taken from an external source. Transports should use this function
- * when using an API that is asynchronous, so in another process like an endpoint, the job can be retrieved given the
- * ID from the API and marked as done/failed
- *
- * @param  {String} source The source of the external ID. E.g. "Twilio". Defined by the transport
- * @param  {String} id     The external ID
- */
-EmissaryJob.prototype.linkToExternalId = function(source, id) {
-  externalIds.insert({
-    source: source,
-    externalId: id,
-    jobId: this.getId()
   });
 };
 
@@ -201,33 +150,15 @@ EmissaryJob.prototype.linkToExternalId = function(source, id) {
  *
  * @todo  Make timeout configurable
  */
-Emissary.registerWorker = function(taskName, options, worker) {
+
+Emissary._workers = {};
+
+Emissary.registerWorker = function (taskName, options, worker) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
 
-  return queue.processJobs(taskName, _.extend({
-    workTimeout: 5 * 60 * 1000
-  }, options), function(job, callback) {
-    var jobObj = new EmissaryJob(job);
-    try {
-      worker(jobObj);
-    } catch (err) {
-      Emissary.emit('error', err);
-
-      // Thinking is, if the worker threw an error without catching it, then
-      // it's some sort of code-level error rather than a logic error. So the
-      // worker would not have marked it done by itself. We need to fail it
-      // explicitly.
-      jobObj.done(err);
-    } finally {
-      // The callback makes it continue to work the queue. This lets us decide
-      // whether or not to "finish" the job inside of the actual worker and even
-      // defer it to be handled later (e.g. for asynchronous callbacks for
-      // certain message transports)
-      callback();
-    }
-  });
+  Emissary._workers[taskName] = worker;
 };
 
 /**
@@ -236,19 +167,16 @@ Emissary.registerWorker = function(taskName, options, worker) {
  * @see  https://github.com/vsivsi/meteor-job-collection#user-content-job-api
  * @param  {String} taskName The name of the task. Must match the taskName in `registerWorker` in order to be handled
  * @param  {Object} data Arbitrary data to pass to the worker
- * @param  {Function} [transform] If provided, this function will run on the job object. You can use this to apply
- *                                additional configuration to the job.
  *
  * @return {EmissaryJob} The job
  */
-Emissary.queueTask = function(taskName, data, transform) {
+Emissary.queueTask = function (taskName, data) {
   if (!Emissary._types.hasOwnProperty(taskName)) {
     throw new Emissary.Error('There is no type registered with name %s', taskName);
   }
 
   // "Cancel If" logic will go here when we want to add it
   Emissary.log('Queuing task: ' + taskName);
-
   try {
     check(data, {
       bodyTemplate: String,
@@ -270,56 +198,10 @@ Emissary.queueTask = function(taskName, data, transform) {
     throw err;
   }
 
-  var job = new Job(queue, taskName, data);
+  // Instead of queuing message, just send it.
 
-  // Set max retry limit. Try up to 5 times, waiting 10 seconds between tries. This can be overrideen
-  // with the transform function
-  job.retry({
-    retries: 5,
-    wait: 10000,
-    backoff: 'constant'
+  return queue.sendMessage({
+    task: taskName,
+    payload: data
   });
-
-  if (transform && _.isFunction(transform)) {
-    job = transform(job, data);
-  }
-
-  job.save();
-  return new EmissaryJob(job);
 };
-
-/**
- * Retrieve a job by ID. Simply wraps the JobCollection.getJob but returns an
- * instance of EmissaryJob instead.
- * @param  {String} id The job ID
- * @return {EmissaryJob|null}    The job, or null if it wasn't found
- */
-Emissary.getJobById = function(id) {
-  var job = queue.getJob(id);
-  if (!job) {
-    return null;
-  }
-  return new EmissaryJob(job);
-};
-
-/**
- * Retrieve a job given a source and externalId for that source. Assumes you have previously linked a job to an
- * external ID using `job.linkToExternalId()`
- * @param  {String} source     The source
- * @param  {String} externalId The external ID
- * @return {EmissaryJob|null}            The job, or null if it can't be found
- */
-Emissary.getJobByExternalId = function(source, externalId) {
-  var externalIdDoc = externalIds.findOne({
-    source: source,
-    externalId: externalId
-  });
-
-  if (!externalIdDoc) {
-    return null;
-  }
-
-  return Emissary.getJobById(externalIdDoc.jobId);
-};
-
-// @todo - retry messages by recipient by type, for when they fix their phone number, for example

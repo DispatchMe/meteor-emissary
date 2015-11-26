@@ -10,6 +10,7 @@ Package.onUse(function (api) {
     // core
     'underscore@1.0.3',
     'check@1.0.5',
+    'ecmascript',
 
     // Atmosphere
     'dispatch:emissary@0.9.2',

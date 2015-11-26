@@ -11,6 +11,7 @@ Package.onUse(function (api) {
     'mongo@1.1.0',
     'underscore@1.0.3',
     'check@1.0.5',
+    'ecmascript',
 
     // Atmosphere
     'vsivsi:job-collection@1.2.2',
@@ -37,7 +38,9 @@ Package.onUse(function (api) {
 });
 
 Npm.depends({
-  'handlebars': '4.0.2'
+  'handlebars': '4.0.2',
+  'queuepid': '0.0.10',
+  'bluebird': '3.0.5'
 });
 
 Package.onTest(function (api) {
