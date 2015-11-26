@@ -6,38 +6,39 @@ var queuepid = Npm.require('queuepid');
 
 var queueURL = (Meteor.settings.emissary && Meteor.settings.emissary.messagesQueue) ||
   process.env.EMISSARY_MESSAGES_QUEUE;
-console.log('Creating with queue URL:', queueURL);
-var queue = new queuepid.Queue('notifications_messages', new queuepid.SQSDriver({
-  queueUrl: queueURL,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: 'us-east-1'
-}), {
-  mongoUrl: process.env.MONGO_URL,
-  retryLimit: 10
-});
 
-queue.connect().then(function () {
-  console.log('Connected to queue');
-}).catch(function (err) {
-  throw err;
+Emissary.connect = Meteor.wrapAsync(function (cb) {
+  Emissary.queue = new queuepid.Queue('notifications_messages', new queuepid.SQSDriver({
+    queueUrl: queueURL,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: 'us-east-1'
+  }), {
+    mongoUrl: process.env.MONGO_URL,
+    retryLimit: 10
+  });
+
+  Emissary.queue.connect().then(function () {
+    console.log('Connected to queue');
+    cb();
+  }).catch(function (err) {
+    cb(err);
+  });
 });
 
 var externalIds = Emissary.collections.externalIds;
 EmissaryTest = {
-  queue: queue,
   externalIds: externalIds
 };
 /**
  * Start the workers to send notifications
  */
 Emissary.workQueue = function () {
-  Emissary.pool = new queuepid.WorkerPool(queue, {
+  Emissary.pool = new queuepid.WorkerPool(Emissary.queue, {
     maxConcurrent: Meteor.settings.emissary && Meteor.settings.emissary.concurrent || process.env.EMISSARY_CONCURRENT ||
       10,
     wait: 500
   }, Meteor.bindEnvironment(function (job) {
-    console.log('Got job!', job.info);
     let info = job.info;
 
     let worker = Emissary._workers[info.data.task];
@@ -47,7 +48,6 @@ Emissary.workQueue = function () {
       try {
         worker(job);
       } catch (err) {
-        console.log('Failing here');
         job.done(err);
       }
     }
@@ -61,7 +61,7 @@ Emissary.workQueue = function () {
  * Stop the workers (stop sending notifications)
  */
 Emissary.stopWorkingQueue = function () {
-  queue.shutdownJobServer();
+  Emissary.pool.stop();
 };
 
 /**
@@ -200,7 +200,7 @@ Emissary.queueTask = function (taskName, data) {
 
   // Instead of queuing message, just send it.
 
-  return queue.sendMessage({
+  return Emissary.queue.sendMessage({
     task: taskName,
     payload: data
   });
