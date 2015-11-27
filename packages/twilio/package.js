@@ -44,6 +44,5 @@ Package.onTest(function (api) {
 
   api.addFiles([
     'tests/interpretResponse.js',
-    'tests/webhook.js'
   ], 'server');
 });

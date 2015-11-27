@@ -1,16 +1,16 @@
-/* global EmissaryJob:false */
+/* global Emissary:false */
 
 describe('Helpers', function () {
   describe('updateJobAccordingToResponse()', function () {
     var job;
     beforeEach(function () {
-      job = new EmissaryJob(null);
-      spyOn(job, 'getId').and.returnValue('12345');
-      spyOn(job, 'done').and.returnValue(true);
-      spyOn(job, 'log').and.returnValue(true);
-      spyOn(job, 'getInfo').and.returnValue({
-        type: 'sms'
-      });
+      job = jasmine.createSpyObj('Job', ['done', 'log']);
+      job.info = {
+        data: {
+          type: 'sms'
+        }
+      };
+
     });
 
     var params = [{
@@ -44,7 +44,7 @@ describe('Helpers', function () {
           response.errorLevel = 0;
         }
 
-        job.handleResponse(response);
+        Emissary.handleResponse(job, response);
         param.expect();
       });
     });

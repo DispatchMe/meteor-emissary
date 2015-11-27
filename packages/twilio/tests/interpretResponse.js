@@ -13,19 +13,19 @@ describe('Twilio', function () {
       status: 'sending',
       expect: {
         ok: true,
-        done: false
+        done: true
       }
     }, {
       status: 'sent',
       expect: {
         ok: true,
-        done: false
+        done: true
       }
     }, {
       status: 'queued',
       expect: {
         ok: true,
-        done: false
+        done: true
       }
     }, {
       status: 'undelivered',

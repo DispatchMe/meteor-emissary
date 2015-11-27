@@ -1,5 +1,8 @@
 /* global EmissaryRouter:false */
 /* global Emissary:false - from dispatch:emissary */
+
+var es6Promise = Npm.require('es6-promise-polyfill');
+
 describe('emit', function () {
   it('should emit the correct messages', function () {
     EmissaryRouter._config = {};
@@ -13,7 +16,7 @@ describe('emit', function () {
       recipient: ['foo', '2']
     }]);
 
-    spyOn(Emissary, 'queueTask').and.returnValue(true);
+    spyOn(Emissary, 'queueTask').and.returnValue(es6Promise.Promise.resolve(true));
 
     EmissaryRouter.send('foo', {
       bar: 'baz'

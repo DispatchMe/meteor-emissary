@@ -39,6 +39,7 @@ Emissary.workQueue = function () {
       10,
     wait: 500
   }, Meteor.bindEnvironment(function (job) {
+    Emissary.log('Sending ' + job.info.data.task);
     let info = job.info;
 
     let worker = Emissary._workers[info.data.task];

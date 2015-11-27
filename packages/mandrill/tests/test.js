@@ -1,8 +1,7 @@
 /* global Emissary:false - from dispatch:emissary */
-/* global EmissaryTest:false - from dispatch:emissary */
 /* global MandrillTransport:false */
-describe('email', function() {
-  it('should generate the request body accurately', function() {
+describe('email', function () {
+  it('should generate the request body accurately', function () {
 
     var transport = new MandrillTransport({
       key: 'asdf1234',
@@ -46,17 +45,17 @@ describe('email', function() {
 
   var util = Npm.require('util');
 
-  describe('mocked mandrill responses', function() {
+  describe('mocked mandrill responses', function () {
     var job;
     var transport;
     var turnOffs = [];
-    beforeAll(function() {
-      Emissary.on('turnOff', function(data) {
+    beforeAll(function () {
+      Emissary.on('turnOff', function (data) {
         turnOffs.push(data);
       });
     });
 
-    beforeEach(function() {
+    beforeEach(function () {
       turnOffs = [];
       transport = new MandrillTransport({
         key: 'asdf1234',
@@ -65,27 +64,17 @@ describe('email', function() {
       });
 
       // Bootstrap
-      job = Emissary.queueTask('email', {
-        bodyTemplate: '',
-        transportConfig: {
-          to: 'test@test.com'
+      job = jasmine.createSpyObj('Job', ['done', 'log']);
+      job.info = {
+        data: {
+          type: 'sms',
+          payload: {
+            transportConfig: {
+              to: 'test@test.com'
+            }
+          }
         }
-      });
-
-      var jobId = job.getId();
-
-      EmissaryTest.queue.update({
-        _id: jobId
-      }, {
-        $set: {
-          status: 'running',
-          // Make this up so it'll think it ran and will let us fail it
-          runId: '12345'
-        }
-      });
-
-      job._job._doc.status = 'running';
-      job._job._doc.runId = '12345';
+      };
 
       spyOn(Emissary, 'emit').and.callThrough();
     });
@@ -125,9 +114,9 @@ describe('email', function() {
       error: Emissary.Error
     }];
 
-    params.forEach(function(param) {
+    params.forEach(function (param) {
       it(util.format('should handle status %s, reject_reason %s successfully', param.status, param.reject_reason ||
-        '(none)'), function() {
+        '(none)'), function () {
         spyOn(HTTP, 'post').and.returnValue({
           statusCode: 200,
           data: [{
@@ -138,18 +127,12 @@ describe('email', function() {
 
         transport.send(job);
         expect(HTTP.post).toHaveBeenCalled();
-        job._job.refresh();
+
         if (param.error) {
-          if (param.error === Emissary.FatalError) {
-            // Complete failure
-            expect(job.getInfo().status).toEqual('failed');
-          } else {
-            // Retry
-            expect(job.getInfo().status).toEqual('waiting');
-          }
+          expect(job.done).toHaveBeenCalledWith(jasmine.any(Error));
 
         } else {
-          expect(job.getInfo().status).toEqual('completed');
+          expect(job.done).toHaveBeenCalledWith();
         }
 
         if (param.turnOff) {

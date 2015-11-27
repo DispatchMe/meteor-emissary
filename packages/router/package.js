@@ -4,7 +4,7 @@ Package.describe({
   version: '0.11.0'
 });
 
-Package.onUse(function(api) {
+Package.onUse(function (api) {
 
   api.use([
     // core
@@ -35,10 +35,11 @@ Package.onUse(function(api) {
 });
 
 Npm.depends({
-  'handlebars': '4.0.2'
+  'handlebars': '4.0.2',
+  'es6-promise-polyfill': '1.1.1'
 });
 
-Package.onTest(function(api) {
+Package.onTest(function (api) {
   api.use('sanjo:jasmine@0.18.0', ['client', 'server']);
   api.use([
     'dispatch:emissary@0.11.0',
