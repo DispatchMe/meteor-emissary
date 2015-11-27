@@ -29,11 +29,11 @@ describe('emit', function () {
     expect(Emissary.queueTask.calls.count()).toEqual(2);
     expect(Emissary.queueTask.calls.argsFor(0)).toEqual(['email', {
       recipient: ['foo', '1']
-    }, jasmine.any(Function)]);
+    }]);
 
     expect(Emissary.queueTask.calls.argsFor(1)).toEqual(['sms', {
       recipient: ['foo', '2']
-    }, jasmine.any(Function)]);
+    }]);
   });
 
 });
