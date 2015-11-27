@@ -162,28 +162,32 @@ if (Meteor.isServer) {
    */
   EmissaryRouter.send = function (eventName, eventData) {
     var messages = this._generateMessages(this._determineRecipients(eventName, eventData), eventName, eventData);
-    var transform = function (job, data) {
-      job.delay(data.delay);
-
-      if (_.isFunction(EmissaryRouter._config.transformJob)) {
-        job = EmissaryRouter._config.transformJob(job, data);
-      }
-
-      return job;
-    };
-
     messages.forEach(function (msg) {
       Emissary.log('Sending message:', msg.type, 'to', msg.transportConfig);
 
-      Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform).then(function (response) {
-        console.log('SENT', response);
-      }).catch(function (err) {
-        console.log('FAILED');
-        console.log(err.stack);
-      });
+      queueTaskSync(msg.type, _.omit(msg, 'type'));
+      // Emissary.queueTask(msg.type, _.omit(msg, 'type'), transform).then(function (response) {
+      //   console.log('SENT', response);
+      // }).catch(function (err) {
+      //   console.log('FAILED');
+      //   console.log(err.stack);
+      // });
 
     });
   };
+}
+
+function queueTaskSync(type, data) {
+  var async = Meteor.wrapAsync(function (cb) {
+    Emissary.queueTask(type, data).then(function (response) {
+      console.log('SENT:', response);
+      cb();
+    }).catch(function (err) {
+      cb(err);
+    });
+  });
+
+  return async();
 }
 
 EmissaryRouter._defineSchema = function () {

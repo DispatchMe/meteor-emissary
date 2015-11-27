@@ -194,13 +194,13 @@ Emissary.queueTask = function (taskName, data) {
     });
 
   } catch (err) {
+    console.log('Error here!');
     Emissary.emit('error', err);
     console.warn('Invalid Emissary message format!');
     throw err;
   }
 
   // Instead of queuing message, just send it.
-
   return Emissary.queue.sendMessage({
     task: taskName,
     payload: data
